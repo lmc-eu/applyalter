@@ -8,7 +8,6 @@ import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
-import java.sql.Statement;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Enumeration;
@@ -24,7 +23,7 @@ import java.util.zip.ZipFile;
  */
 public class ApplyAlter
 {
-
+  public static final String CHECK_OK = "OK";
   /**
    * Run mode system property name
    */
@@ -159,6 +158,21 @@ public class ApplyAlter
             try {
               Connection c = d.useConnection();
               System.out.printf("Database instance %s %s\n", dbid, d.getUrl());
+
+              // do check
+              statement = a.getCheck(); 
+              if (statement != null) {
+                System.out.printf("Check: %s\n", statement);
+                t = c.prepareStatement(statement);
+                ResultSet rs = t.executeQuery();
+                rs.next();
+                String check = rs.getString(1);
+                if (CHECK_OK.equalsIgnoreCase(check)) {
+                  System.out.println("Alter applied already, skipping");
+                  continue;
+                }
+              }
+
               // for all alter statements
               for (AlterStatement s: a.getStatements()) {
                 System.out.println(s);
@@ -173,20 +187,6 @@ public class ApplyAlter
               long stop = System.currentTimeMillis();
               System.out.printf("Alter %s on %s took %s ms\n", a.getId(), dbid, stop-start);
               
-              // do check
-              statement = a.getCheck(); 
-              if (statement != null) {
-                System.out.printf("Check: %s\n", statement);
-                if (!RunMode.print.equals(runmode)) {
-                  t = c.prepareStatement(statement);
-                  ResultSet rs = t.executeQuery();
-                  rs.next();
-                  String check = rs.getString(1);
-                  if( !"OK".equalsIgnoreCase(check))
-                    throw new ApplyAlterException("Check on db " + dbid + " failed: " + check);
-                }
-              }
-
             } catch (SQLException e) {
               ApplyAlterException ex = new ApplyAlterException("Can not execute alter statement on db " + dbid + "\n" + statement, e);
               if (ignorefailures) aae.add(ex);
