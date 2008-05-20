@@ -230,6 +230,10 @@ public class ApplyAlter
   
   public static void main(String[] args)
   {
+    boolean ignfail = Boolean.getBoolean(IGNORE_FAILURES);
+    boolean printstacktrace = Boolean.getBoolean("printstacktrace");
+    RunMode rnmd = RunMode.getProperty(RUN_MODE, RunMode.sharp);
+
     try {
       if (args.length < 1)
         throw new ApplyAlterException("Run with params <dbconfig.xml> (alter.xml|alter.zip) ...");
@@ -237,15 +241,16 @@ public class ApplyAlter
       // prepare arguments
       String[] param = new String[args.length-1];
       System.arraycopy(args, 1, param, 0, args.length-1);
-      boolean ignfail = Boolean.getBoolean(IGNORE_FAILURES);
-      RunMode rnmd = RunMode.getProperty(RUN_MODE, RunMode.sharp);
       
       // go
       new ApplyAlter(args[0], rnmd, ignfail)
         .apply(param);
       
     } catch (ApplyAlterException e) {
-      e.printMessages(System.err);
+      if (printstacktrace && !ignfail)
+        e.printStackTrace(System.err);
+      else
+        e.printMessages(System.err);
       System.exit(-1);
     }
   }
