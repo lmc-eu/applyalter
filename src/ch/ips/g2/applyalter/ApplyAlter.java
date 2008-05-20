@@ -159,14 +159,29 @@ public class ApplyAlter
               Connection c = d.useConnection();
               System.out.printf("Database instance %s %s\n", dbid, d.getUrl());
               // for all alter statements
-              for (String s: a.getStatements()) {
+              for (AlterStatement s: a.getStatements()) {
                 System.out.println(s);
-                statement = s;
+                String stm = s.getSQLStatement();
+                t = null;
+                statement = stm;
+                if (stm == null)
+                  continue;
                 t = c.createStatement();
-                t.execute(s);
+                t.execute(stm);
               }
               long stop = System.currentTimeMillis();
-              System.out.printf("Alter %s took %s ms\n", a.getId(), stop-start);
+              System.out.printf("Alter %s on %s took %s ms\n", a.getId(), dbid, stop-start);
+              
+              // do check
+              statement = a.getCheck(); 
+              if (statement != null) {
+                t = c.createStatement();
+                ResultSet rs = t.executeQuery(statement);
+                String check = rs.getString(0);
+                if (!"OK".equalsIgnoreCase(check))
+                  throw new ApplyAlterException("Check on db " + dbid + " failed: " + check);
+              }
+
             } catch (SQLException e) {
               ApplyAlterException ex = new ApplyAlterException("Can not execute alter statement on db " + dbid + "\n" + statement, e);
               if (ignorefailures) aae.add(ex);

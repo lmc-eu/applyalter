@@ -12,6 +12,10 @@ public class ApplyAlterException extends RuntimeException
     super(message);
   }
 
+  public ApplyAlterException(String format, Object... param) {
+    super(String.format(format, param));
+  }
+
   public ApplyAlterException(Throwable cause) {
     super(cause);
   }
@@ -19,7 +23,12 @@ public class ApplyAlterException extends RuntimeException
   public ApplyAlterException(String message, Throwable cause) {
     super(message, cause);
   }
-  
+
+  public ApplyAlterException(String format, Throwable cause, Object... param) {
+    super(String.format(format, param), cause);
+  }
+
+
   public void printMessages(PrintStream out) {
     Throwable e = this;
     do {

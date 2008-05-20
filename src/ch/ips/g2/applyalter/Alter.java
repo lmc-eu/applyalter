@@ -21,38 +21,40 @@ public class Alter
 {
   private String id;
   public Set<String> instances = new HashSet<String>();
-  public List<String> statements = new ArrayList<String>();
+  public List<AlterStatement> statements = new ArrayList<AlterStatement>();
   public String check;
   
   public Alter() {
     super();
   }
-  public Alter(Set<String> instance, List<String> statements) {
+  public Alter(Set<String> instance, List<AlterStatement> statements) {
     this();
     this.instances = instance;
     this.statements = statements;
   }
-  public Alter(Set<String> instances, String... statements) {
+  public Alter(Set<String> instances, String check, AlterStatement... statements) {
     this();
     this.instances = instances;
+    this.check = check;
     addStatements(statements);
   }
-  public Alter(String instance, String... statements) {
+  public Alter(String instance, String check, AlterStatement... statements) {
     this();
     this.instances.add(instance);
+    this.check = check;
     addStatements(statements);
   }
   
-  public void addStatements(String... statements)
+  public void addStatements(AlterStatement... statements)
   {
-    for (String i: statements)
+    for (AlterStatement i: statements)
       this.statements.add(i);
   }
-  public List<String> getStatements()
+  public List<AlterStatement> getStatements()
   {
     return statements;
   }
-  public void setStatements(List<String> statements)
+  public void setStatements(List<AlterStatement> statements)
   {
     this.statements = statements;
   }
