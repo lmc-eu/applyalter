@@ -1,5 +1,9 @@
 package ch.ips.g2.applyalter;
 
+import java.sql.Connection;
+import java.sql.PreparedStatement;
+import java.sql.SQLException;
+
 public abstract class AbstractStatement implements AlterStatement
 {
   public String statement;
@@ -12,6 +16,12 @@ public abstract class AbstractStatement implements AlterStatement
   public String getSQLStatement()
   {
     return statement;
+  }
+
+  public PreparedStatement getPreparedStatement(Connection con) throws SQLException
+  {
+    String sql = getSQLStatement();
+    return sql == null ? null : con.prepareStatement(sql);
   }
 
   public void setStatement(String statement)
@@ -49,7 +59,7 @@ public abstract class AbstractStatement implements AlterStatement
   @Override
   public String toString()
   {
-    return statement;
+    return this.getClass().getSimpleName() + ": " + statement;
   }
   
   

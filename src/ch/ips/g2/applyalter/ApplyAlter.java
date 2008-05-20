@@ -5,6 +5,7 @@ import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.InputStream;
 import java.sql.Connection;
+import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
@@ -144,7 +145,7 @@ public class ApplyAlter
   public void apply(Alter... alters) throws ApplyAlterException {
     String dbid = null;
     String statement = null;
-    Statement t = null;
+    PreparedStatement t = null;
     ApplyAlterExceptions aae = new ApplyAlterExceptions();
     try {
       // for all alter scripts
@@ -163,11 +164,11 @@ public class ApplyAlter
                 System.out.println(s);
                 String stm = s.getSQLStatement();
                 t = null;
-                statement = stm;
+                statement = s.toString();
                 if (stm == null || RunMode.print.equals(runmode))
                   continue;
-                t = c.createStatement();
-                t.execute(stm);
+                t = s.getPreparedStatement(c);
+                t.execute();
               }
               long stop = System.currentTimeMillis();
               System.out.printf("Alter %s on %s took %s ms\n", a.getId(), dbid, stop-start);
@@ -175,15 +176,14 @@ public class ApplyAlter
               // do check
               statement = a.getCheck(); 
               if (statement != null) {
-                System.out.printf("Check statement: %s\n", statement);
+                System.out.printf("Check: %s\n", statement);
                 if (!RunMode.print.equals(runmode)) {
-                  t = c.createStatement();
-                  ResultSet rs = t.executeQuery(statement);
+                  t = c.prepareStatement(statement);
+                  ResultSet rs = t.executeQuery();
                   rs.next();
                   String check = rs.getString(1);
                   if( !"OK".equalsIgnoreCase(check))
-                    throw new ApplyAlterException("Check on db " + dbid
-                        + " failed: " + check);
+                    throw new ApplyAlterException("Check on db " + dbid + " failed: " + check);
                 }
               }
 
