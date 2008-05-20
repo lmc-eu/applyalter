@@ -24,6 +24,13 @@ import java.util.zip.ZipFile;
 public class ApplyAlter
 {
 
+  /**
+   * Run mode system property name
+   */
+  public static final String RUN_MODE = "runmode";
+  /**
+   * Ignore failures system property name
+   */
   public static final String IGNORE_FAILURES = "ignorefailures";
   /**
    * Suffix for zip file
@@ -37,15 +44,23 @@ public class ApplyAlter
    * Configuration of database instances
    */
   protected DbConfig db;
+  /**
+   * fail with first exception or collect them and report at one 
+   */
   protected boolean ignorefailures;
+  /**
+   * run mode
+   */
+  protected RunMode runmode;
   
   /**
    * Create instance
    * @param dbconfigfile XML serialized {@link DbConfig} (database configuration)
    */
-  public ApplyAlter(String dbconfigfile, boolean ignorefailures) {
+  public ApplyAlter(String dbconfigfile, RunMode runmode, boolean ignorefailures) {
     db = new DbConfig(dbconfigfile);
     this.ignorefailures = ignorefailures;
+    this.runmode = runmode;
   }
   
   /**
@@ -164,7 +179,7 @@ public class ApplyAlter
                 String stm = s.getSQLStatement();
                 t = null;
                 statement = stm;
-                if (stm == null)
+                if (stm == null || RunMode.print.equals(runmode))
                   continue;
                 t = c.createStatement();
                 t.execute(stm);
@@ -175,12 +190,16 @@ public class ApplyAlter
               // do check
               statement = a.getCheck(); 
               if (statement != null) {
-                t = c.createStatement();
-                ResultSet rs = t.executeQuery(statement);
-                rs.next();
-                String check = rs.getString(1);
-                if (!"OK".equalsIgnoreCase(check))
-                  throw new ApplyAlterException("Check on db " + dbid + " failed: " + check);
+                System.out.printf("Check statement: %s\n", statement);
+                if (!RunMode.print.equals(runmode)) {
+                  t = c.createStatement();
+                  ResultSet rs = t.executeQuery(statement);
+                  rs.next();
+                  String check = rs.getString(1);
+                  if( !"OK".equalsIgnoreCase(check))
+                    throw new ApplyAlterException("Check on db " + dbid
+                        + " failed: " + check);
+                }
               }
 
             } catch (SQLException e) {
@@ -199,7 +218,7 @@ public class ApplyAlter
           }
         }
         // commit each alter on used databases
-        if (aae.isEmpty())
+        if (aae.isEmpty() && RunMode.sharp.equals(runmode))
           db.commitUsed(ignorefailures);
       }
     
@@ -214,9 +233,17 @@ public class ApplyAlter
     try {
       if (args.length < 1)
         throw new ApplyAlterException("Run with params <dbconfig.xml> (alter.xml|alter.zip) ...");
+      
+      // prepare arguments
       String[] param = new String[args.length-1];
       System.arraycopy(args, 1, param, 0, args.length-1);
-      new ApplyAlter(args[0], Boolean.getBoolean(IGNORE_FAILURES)).apply(param);
+      boolean ignfail = Boolean.getBoolean(IGNORE_FAILURES);
+      RunMode rnmd = RunMode.getProperty(RUN_MODE, RunMode.sharp);
+      
+      // go
+      new ApplyAlter(args[0], rnmd, ignfail)
+        .apply(param);
+      
     } catch (ApplyAlterException e) {
       e.printMessages(System.err);
       System.exit(-1);
