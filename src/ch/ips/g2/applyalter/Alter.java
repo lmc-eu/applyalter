@@ -20,25 +20,25 @@ import ch.ips.base.BaseXMLUtil;
 public class Alter
 {
   private String id;
-  public Set<String> instances = new HashSet<String>();
+  public Set<DbInstanceType> instances = new HashSet<DbInstanceType>();
   public List<AlterStatement> statements = new ArrayList<AlterStatement>();
   public String check;
   
   public Alter() {
     super();
   }
-  public Alter(Set<String> instance, List<AlterStatement> statements) {
+  public Alter(Set<DbInstanceType> instance, List<AlterStatement> statements) {
     this();
     this.instances = instance;
     this.statements = statements;
   }
-  public Alter(Set<String> instances, String check, AlterStatement... statements) {
+  public Alter(Set<DbInstanceType> instances, String check, AlterStatement... statements) {
     this();
     this.instances = instances;
     this.check = check;
     addStatements(statements);
   }
-  public Alter(String instance, String check, AlterStatement... statements) {
+  public Alter(DbInstanceType instance, String check, AlterStatement... statements) {
     this();
     this.instances.add(instance);
     this.check = check;
@@ -58,11 +58,11 @@ public class Alter
   {
     this.statements = statements;
   }
-  public Set<String> getInstances()
+  public Set<DbInstanceType> getInstances()
   {
     return instances;
   }
-  public void setInstances(Set<String> instances)
+  public void setInstances(Set<DbInstanceType> instances)
   {
     this.instances = instances;
   }

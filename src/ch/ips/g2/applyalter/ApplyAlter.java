@@ -1,4 +1,5 @@
 package ch.ips.g2.applyalter;
+
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.IOException;
@@ -11,7 +12,6 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Enumeration;
 import java.util.List;
-import java.util.Map;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipFile;
 
@@ -137,19 +137,6 @@ public class ApplyAlter
   }
 
   /**
-   * Check if all database identifiers in alters are defined in database configuration
-   * @param alters to check
-   * @throws ApplyAlterException if there is an unknown database id
-   */
-  protected void checkDbIds(Alter... alters) throws ApplyAlterException
-  {
-    for (Alter a: alters)
-      for (String i: a.getInstances())
-        if (!db.getDbIds().contains(i))
-          throw new ApplyAlterException("Unknown database id " + i + " in alter " + a.getId());
-  }
-
-  /**
    * Apply alter scripts to all or selected database instances
    * @param alters alter scripts to apply
    * @throws ApplyAlterException if one of statements can not be executed
@@ -160,17 +147,15 @@ public class ApplyAlter
     Statement t = null;
     ApplyAlterExceptions aae = new ApplyAlterExceptions();
     try {
-      checkDbIds(alters);
       // for all alter scripts
       for (Alter a: alters) {
         // for all (or selected) databases
-        for (Map.Entry<String, DbInstance> i: db.getEntries()) {
+        for (DbInstance d: db.getEntries()) {
           // apply to this instance?
-          if (a.isAllInstances() || a.getInstances().contains(i.getKey())) {
+          if (a.isAllInstances() || a.getInstances().contains(d.getType())) {
             long start = System.currentTimeMillis();
-            dbid = i.getKey();
+            dbid = d.getId();
             try {
-              DbInstance d = i.getValue();
               Connection c = d.useConnection();
               System.out.printf("Database instance %s %s\n", dbid, d.getUrl());
               // for all alter statements
@@ -243,6 +228,7 @@ public class ApplyAlter
       System.arraycopy(args, 1, param, 0, args.length-1);
       
       // go
+      System.out.printf("ApplyAlter started in run mode: %s\n", rnmd);
       new ApplyAlter(args[0], rnmd, ignfail)
         .apply(param);
       

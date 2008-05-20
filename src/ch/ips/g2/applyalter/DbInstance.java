@@ -13,6 +13,8 @@ public class DbInstance
 {
   private static final String DB_DRIVER = "com.ibm.db2.jcc.DB2Driver";
   
+  public String id;
+  public DbInstanceType type;
   public String host;
   public Integer port;
   public String db;
@@ -32,8 +34,10 @@ public class DbInstance
   public DbInstance() {
     super();
   }
-  public DbInstance(String host, Integer port, String db, String user, String pass) {
+  public DbInstance(String id, DbInstanceType type, String host, Integer port, String db, String user, String pass) {
     this();
+    this.id = id;
+    this.type = type;
     this.host = host;
     this.port = port;
     this.db = db;
@@ -91,6 +95,22 @@ public class DbInstance
     }
   }
   
+  public String getId()
+  {
+    return id;
+  }
+  public void setId(String id)
+  {
+    this.id = id;
+  }
+  public DbInstanceType getType()
+  {
+    return type;
+  }
+  public void setType(DbInstanceType type)
+  {
+    this.type = type;
+  }
   public boolean isUsed()
   {
     return used;
@@ -134,55 +154,6 @@ public class DbInstance
   public void setPass(String pass)
   {
     this.pass = pass;
-  }
-  @Override
-  public int hashCode()
-  {
-    final int prime = 31;
-    int result = 1;
-    result = prime * result + ((db == null) ? 0 : db.hashCode());
-    result = prime * result + ((host == null) ? 0 : host.hashCode());
-    result = prime * result + ((pass == null) ? 0 : pass.hashCode());
-    result = prime * result + ((port == null) ? 0 : port.hashCode());
-    result = prime * result + ((user == null) ? 0 : user.hashCode());
-    return result;
-  }
-  @Override
-  public boolean equals(Object obj)
-  {
-    if( this == obj)
-      return true;
-    if( obj == null)
-      return false;
-    if( !(obj instanceof DbInstance))
-      return false;
-    final DbInstance other = (DbInstance) obj;
-    if( db == null) {
-      if( other.db != null)
-        return false;
-    } else if( !db.equals(other.db))
-      return false;
-    if( host == null) {
-      if( other.host != null)
-        return false;
-    } else if( !host.equals(other.host))
-      return false;
-    if( pass == null) {
-      if( other.pass != null)
-        return false;
-    } else if( !pass.equals(other.pass))
-      return false;
-    if( port == null) {
-      if( other.port != null)
-        return false;
-    } else if( !port.equals(other.port))
-      return false;
-    if( user == null) {
-      if( other.user != null)
-        return false;
-    } else if( !user.equals(other.user))
-      return false;
-    return true;
   }
   
 }
