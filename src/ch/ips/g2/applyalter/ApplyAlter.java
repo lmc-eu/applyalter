@@ -177,7 +177,8 @@ public class ApplyAlter
               if (statement != null) {
                 t = c.createStatement();
                 ResultSet rs = t.executeQuery(statement);
-                String check = rs.getString(0);
+                rs.next();
+                String check = rs.getString(1);
                 if (!"OK".equalsIgnoreCase(check))
                   throw new ApplyAlterException("Check on db " + dbid + " failed: " + check);
               }
@@ -198,7 +199,8 @@ public class ApplyAlter
           }
         }
         // commit each alter on used databases
-        db.commitUsed(ignorefailures);
+        if (aae.isEmpty())
+          db.commitUsed(ignorefailures);
       }
     
     } finally {

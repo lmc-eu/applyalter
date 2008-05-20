@@ -57,6 +57,7 @@ public class DbConfig
       DbInstance b = i.getValue();
       if (b.isUsed())
         try {
+          System.out.println("Commiting " + i.getKey());
           b.getConnection().commit();
         } catch (SQLException e) {
           ApplyAlterException ex = new ApplyAlterException("Error commiting", e);
