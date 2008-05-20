@@ -4,6 +4,7 @@ import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.InputStream;
 import java.sql.Connection;
+import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
 import java.util.ArrayList;
@@ -23,6 +24,7 @@ import java.util.zip.ZipFile;
 public class ApplyAlter
 {
 
+  public static final String IGNORE_FAILURES = "ignorefailures";
   /**
    * Suffix for zip file
    */
@@ -35,13 +37,15 @@ public class ApplyAlter
    * Configuration of database instances
    */
   protected DbConfig db;
+  protected boolean ignorefailures;
   
   /**
    * Create instance
-   * @param file XML serialized {@link DbConfig} (database configuration)
+   * @param dbconfigfile XML serialized {@link DbConfig} (database configuration)
    */
-  public ApplyAlter(String file) {
-    db = new DbConfig(file);
+  public ApplyAlter(String dbconfigfile, boolean ignorefailures) {
+    db = new DbConfig(dbconfigfile);
+    this.ignorefailures = ignorefailures;
   }
   
   /**
@@ -139,6 +143,7 @@ public class ApplyAlter
     String dbid = null;
     String statement = null;
     Statement t = null;
+    ApplyAlterExceptions aae = new ApplyAlterExceptions();
     try {
       checkDbIds(alters);
       // for all alter scripts
@@ -149,32 +154,42 @@ public class ApplyAlter
           if (a.isAllInstances() || a.getInstances().contains(i.getKey())) {
             long start = System.currentTimeMillis();
             dbid = i.getKey();
-            DbInstance d = i.getValue();
-            Connection c = d.useConnection();
-            System.out.printf("Database instance %s %s\n", dbid, d.getUrl());
-            // for all alter statements
-            for (String s: a.getStatements()) {
-              System.out.println(s);
-              statement = s;
-              t = c.createStatement();
-              t.execute(s);
+            try {
+              DbInstance d = i.getValue();
+              Connection c = d.useConnection();
+              System.out.printf("Database instance %s %s\n", dbid, d.getUrl());
+              // for all alter statements
+              for (String s: a.getStatements()) {
+                System.out.println(s);
+                statement = s;
+                t = c.createStatement();
+                t.execute(s);
+              }
+              long stop = System.currentTimeMillis();
+              System.out.printf("Alter %s took %s ms\n", a.getId(), stop-start);
+            } catch (SQLException e) {
+              ApplyAlterException ex = new ApplyAlterException("Can not execute alter statement on db " + dbid + "\n" + statement, e);
+              if (ignorefailures) aae.add(ex);
+              else throw ex;
+            } catch (ApplyAlterException e) {
+              if (ignorefailures) aae.add(e);
+              else throw e;
+            } finally {
+              if (t != null)
+                try {
+                  t.close();
+                } catch (SQLException e) {}
             }
-            long stop = System.currentTimeMillis();
-            System.out.printf("Alter %s took %s ms\n", a.getId(), stop-start);
           }
         }
         // commit each alter on used databases
-        db.commitUsed();
+        db.commitUsed(ignorefailures);
       }
-    } catch (SQLException e) {
-      throw new ApplyAlterException("Can not execute alter statement on db " + dbid + "\n" + statement, e);
+    
     } finally {
-      if (t != null)
-        try {
-          t.close();
-        } catch (SQLException e) {}
       db.closeConnections();
     }
+    if (!aae.isEmpty()) throw aae;
   }
   
   public static void main(String[] args)
@@ -184,7 +199,7 @@ public class ApplyAlter
         throw new ApplyAlterException("Run with params <dbconfig.xml> (alter.xml|alter.zip) ...");
       String[] param = new String[args.length-1];
       System.arraycopy(args, 1, param, 0, args.length-1);
-      new ApplyAlter(args[0]).apply(param);
+      new ApplyAlter(args[0], Boolean.getBoolean(IGNORE_FAILURES)).apply(param);
     } catch (ApplyAlterException e) {
       e.printMessages(System.err);
       System.exit(-1);

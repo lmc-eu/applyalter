@@ -45,18 +45,27 @@ public class DbConfig
 
   /**
    * Commit used connections
+   * @param ignorefailures 
    * @see DbInstance#useConnection() 
    * @see DbInstance#isUsed() 
-   * @throws SQLException if one of connection can not be commited
+   * @throws ApplyAlterException if one or some of connection can not be commited
    */
-  public void commitUsed() throws SQLException
+  public void commitUsed(boolean ignorefailures) throws ApplyAlterException
   {
+    ApplyAlterExceptions aae = new ApplyAlterExceptions();
     for (Map.Entry<String, DbInstance> i: d.entrySet()) {
       DbInstance b = i.getValue();
       if (b.isUsed())
-        b.getConnection().commit();
+        try {
+          b.getConnection().commit();
+        } catch (SQLException e) {
+          ApplyAlterException ex = new ApplyAlterException("Error commiting", e);
+          if (ignorefailures) aae.add(ex);
+          else throw ex;
+        }
     }
-    
+    if (!aae.isEmpty())
+      throw aae;
   }
 
   public Set<String> getDbIds()

@@ -22,6 +22,7 @@ public class Alter
   private String id;
   public Set<String> instances = new HashSet<String>();
   public List<String> statements = new ArrayList<String>();
+  public String check;
   
   public Alter() {
     super();
@@ -79,6 +80,14 @@ public class Alter
     this.id = id;
   }
   
+  public String getCheck()
+  {
+    return check;
+  }
+  public void setCheck(String check)
+  {
+    this.check = check;
+  }
   /**
    * Create new instance from XML serialized form
    * @param file identifier for {@link Alter#setId()}
