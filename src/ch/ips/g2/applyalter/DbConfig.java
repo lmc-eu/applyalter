@@ -25,6 +25,8 @@ public class DbConfig
     } catch (FileNotFoundException e) {
       throw new ApplyAlterException("File not found " + file, e);
     }
+    if (d == null)
+      throw new ApplyAlterException("Unable to deserialize DbConfig from file " + file);
     for (DbInstance i: d)
       i.getConnection();
   }

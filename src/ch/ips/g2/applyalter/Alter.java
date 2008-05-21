@@ -99,6 +99,8 @@ public class Alter
   public static Alter newInstance(String file, InputStream i)
   {
     Alter a = (Alter) BaseXMLUtil.fromXML(new InputSource(i));
+    if (a == null)
+      throw new ApplyAlterException("Unable to deserialize Alter from file " + file);
     // get file name part
     a.setId(new File(file).getName());
     return a;
