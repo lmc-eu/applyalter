@@ -8,7 +8,7 @@ import java.util.Set;
 
 import org.xml.sax.InputSource;
 
-import ch.ips.base.BaseXMLUtil;
+import ch.ips.base.BaseXMLDeserializer;
 
 /**
  * This class holds alter script (list of alter statements) which
@@ -98,7 +98,7 @@ public class Alter
    */
   public static Alter newInstance(String file, InputStream i)
   {
-    Alter a = (Alter) BaseXMLUtil.fromXML(new InputSource(i));
+    Alter a = (Alter) new BaseXMLDeserializer().fromXML(new InputSource(i));
     if (a == null)
       throw new ApplyAlterException("Unable to deserialize Alter from file " + file);
     // get file name part

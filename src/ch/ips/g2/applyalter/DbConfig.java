@@ -6,7 +6,7 @@ import java.util.List;
 
 import org.xml.sax.InputSource;
 
-import ch.ips.base.BaseXMLUtil;
+import ch.ips.base.BaseXMLDeserializer;
 
 
 /**
@@ -21,7 +21,7 @@ public class DbConfig
   @SuppressWarnings("unchecked")
   public DbConfig(String file) {
     try {
-      d = (List<DbInstance>) BaseXMLUtil.fromXML(new InputSource(new FileInputStream(file)));
+      d = (List<DbInstance>) new BaseXMLDeserializer().fromXML(new InputSource(new FileInputStream(file)));
     } catch (FileNotFoundException e) {
       throw new ApplyAlterException("File not found " + file, e);
     }
