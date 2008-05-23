@@ -45,10 +45,6 @@ public class ApplyAlter
    */
   protected DbConfig db;
   /**
-   * fail with first exception or collect them and report at one 
-   */
-  protected boolean ignorefailures;
-  /**
    * run mode
    */
   protected RunMode runmode;
@@ -58,8 +54,7 @@ public class ApplyAlter
    * @param dbconfigfile XML serialized {@link DbConfig} (database configuration)
    */
   public ApplyAlter(String dbconfigfile, RunMode runmode, boolean ignorefailures) {
-    db = new DbConfig(dbconfigfile);
-    this.ignorefailures = ignorefailures;
+    db = new DbConfig(dbconfigfile, ignorefailures);
     this.runmode = runmode;
   }
   
@@ -103,7 +98,8 @@ public class ApplyAlter
   }
 
   /**
-   * Create a list of Alter instances from XML serialized from files stored in .zip 
+   * Create a list of Alter instances from XML serialized from files stored in .zip.
+   * List is sorted using {@link ZipEntryNameComparator}.
    * @param zipfile zip file containing XML files
    * @return list of new Alter instances
    * @throws ApplyAlterException if error occurs during zip file processing
@@ -137,6 +133,68 @@ public class ApplyAlter
   }
 
   /**
+   * Check if object exists in database, which means an alter was applied already. 
+   * @param c Connection to database
+   * @param a check object
+   * @return true if object exists in database
+   * @throws ApplyAlterException
+   */
+  protected static boolean check(Connection c, Check a) throws ApplyAlterException
+  {
+    a.check();
+    PreparedStatement s = null;
+    try {
+      String sql = a.getType().getSQL();
+      String schema = a.getSchema().toUpperCase();
+      String name = a.getName().toUpperCase();
+      System.out.printf("Check: %s %s %s\n", sql, schema, name);
+      s = c.prepareStatement(sql);
+      s.setString(1, schema);
+      s.setString(2, name);
+      s.execute();
+      return s.getResultSet().next();
+    } catch (SQLException e) {
+      throw new ApplyAlterException("Can not check " + a, e);
+    } finally {
+      if (s != null)
+        try {
+          s.close();
+        } catch (SQLException e) {}
+    }
+  }
+
+  /**
+   * Custom check if an alter was applieds already. 
+   * @param c Connection to database
+   * @param sql custom SQL statement
+   * @return true if sql is not null and result of sql statement is equal {@link #CHECK_OK} value
+   * @throws ApplyAlterException
+   */
+  protected static boolean check(Connection c, String sql) throws ApplyAlterException
+  {
+    if (sql == null)
+      return false;
+    PreparedStatement s = null;
+    try {
+      System.out.printf("Check: %s\n", sql);
+      s = c.prepareStatement(sql);
+      ResultSet rs = s.executeQuery();
+      rs.next();
+      String check = rs.getString(1);
+      return (CHECK_OK.equalsIgnoreCase(check));
+    } catch (SQLException e) {
+      throw new ApplyAlterException("Can not check " + sql, e);
+    } finally {
+      if (s != null)
+        try {
+          s.close();
+        } catch (SQLException e) {}
+    }
+  }
+/*
+ */
+  
+  /**
    * Apply alter scripts to all or selected database instances
    * @param alters alter scripts to apply
    * @throws ApplyAlterException if one of statements can not be executed
@@ -150,29 +208,28 @@ public class ApplyAlter
       // for all alter scripts
       for (Alter a: alters) {
         // for all (or selected) databases
+        DbLoop:
         for (DbInstance d: db.getEntries()) {
           // apply to this instance?
           if (a.isAllInstances() || a.getInstances().contains(d.getType())) {
             long start = System.currentTimeMillis();
             dbid = d.getId();
             try {
-              Connection c = d.useConnection();
+              Connection c = d.getConnection();
               System.out.printf("Database instance %s %s\n", dbid, d.getUrl());
-
-              // do check
-              statement = a.getCheck(); 
-              if (statement != null) {
-                System.out.printf("Check: %s\n", statement);
-                t = c.prepareStatement(statement);
-                ResultSet rs = t.executeQuery();
-                rs.next();
-                String check = rs.getString(1);
-                if (CHECK_OK.equalsIgnoreCase(check)) {
-                  System.out.println("Alter applied already, skipping");
-                  continue;
-                }
+  
+              // do checks
+              if (check(c, a.getCheck())) {
+                System.out.println("Alter applied already, skipping");
+                continue DbLoop;
               }
-
+              for (Check i: a.getChecks())
+                if (check(c, i)) {
+                  System.out.println("Alter applied already, skipping");
+                  continue DbLoop;
+                }
+              
+              d.useConnection();
               // for all alter statements
               for (AlterStatement s: a.getStatements()) {
                 System.out.println(s);
@@ -189,10 +246,10 @@ public class ApplyAlter
               
             } catch (SQLException e) {
               ApplyAlterException ex = new ApplyAlterException("Can not execute alter statement on db " + dbid + "\n" + statement, e);
-              if (ignorefailures) aae.add(ex);
+              if (db.isIgnorefailures()) aae.add(ex);
               else throw ex;
             } catch (ApplyAlterException e) {
-              if (ignorefailures) aae.add(e);
+              if (db.isIgnorefailures()) aae.add(e);
               else throw e;
             } finally {
               if (t != null)
@@ -204,7 +261,7 @@ public class ApplyAlter
         }
         // commit each alter on used databases
         if (aae.isEmpty() && RunMode.sharp.equals(runmode))
-          db.commitUsed(ignorefailures);
+          db.commitUsed();
       }
     
     } finally {
@@ -212,7 +269,8 @@ public class ApplyAlter
     }
     if (!aae.isEmpty()) throw aae;
   }
-  
+
+    
   public static void main(String[] args)
   {
     boolean ignfail = Boolean.getBoolean(IGNORE_FAILURES);

@@ -20,9 +20,10 @@ import ch.ips.base.BaseXMLDeserializer;
 public class Alter
 {
   private String id;
+  public String check;
+  public List<Check> checks = new ArrayList<Check>();
   public Set<DbInstanceType> instances = new HashSet<DbInstanceType>();
   public List<AlterStatement> statements = new ArrayList<AlterStatement>();
-  public String check;
   
   public Alter() {
     super();
@@ -89,6 +90,19 @@ public class Alter
   public void setCheck(String check)
   {
     this.check = check;
+  }
+  public List<Check> getChecks()
+  {
+    return checks;
+  }
+  public void setChecks(List<Check> checks)
+  {
+    this.checks = checks;
+  }
+  public void addChecks(Check...ch) {
+    for (Check i: ch) {
+      this.checks.add(i);
+    }
   }
   /**
    * Create new instance from XML serialized form

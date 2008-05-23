@@ -18,8 +18,13 @@ public class DbConfig
 {
   protected List<DbInstance> d;
   
+  /**
+   * fail with first exception or collect them and report at one 
+   */
+  protected boolean ignorefailures;
+  
   @SuppressWarnings("unchecked")
-  public DbConfig(String file) {
+  public DbConfig(String file, boolean ignorefailures) {
     try {
       d = (List<DbInstance>) new BaseXMLDeserializer().fromXML(new InputSource(new FileInputStream(file)));
     } catch (FileNotFoundException e) {
@@ -29,12 +34,18 @@ public class DbConfig
       throw new ApplyAlterException("Unable to deserialize DbConfig from file " + file);
     for (DbInstance i: d)
       i.getConnection();
+    this.ignorefailures = ignorefailures;
   }
   
   public List<DbInstance> getEntries() {
     return d;
   }
  
+  public boolean isIgnorefailures()
+  {
+    return ignorefailures;
+  }
+
   /**
    * Close connections to all database instances
    */
@@ -50,7 +61,7 @@ public class DbConfig
    * @see DbInstance#isUsed() 
    * @throws ApplyAlterException if one or some of connection can not be commited
    */
-  public void commitUsed(boolean ignorefailures) throws ApplyAlterException
+  public void commitUsed() throws ApplyAlterException
   {
     ApplyAlterExceptions aae = new ApplyAlterExceptions();
     for (DbInstance i: d) {
@@ -67,5 +78,6 @@ public class DbConfig
     if (!aae.isEmpty())
       throw aae;
   }
+
 
 }
