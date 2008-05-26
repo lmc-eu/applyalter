@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 
-<project name="applyalter" default="compile">
+<project name="applyalter" default="jar">
 	<property name="src" value="src" />
 	<property name="target" value="target" />
 	<property name="classes" value="${target}/classes" />
@@ -44,10 +44,10 @@
       <fileset refid="extlibs" />
       <fileset refid="db2libs" />
 		</copy>
-		<jar destfile="${target}/${ant.project.name}.jar" basedir="${classes}" />
 	</target>
 
 	<target name="dist" depends="compile">
+    <jar destfile="${target}/${ant.project.name}.jar" basedir="${classes}" />
 		<zip destfile="${target}/${ant.project.name}.zip">
 			<fileset dir="${target}" includes="*.jar" />
 			<fileset dir="${basedir}" includes="${ant.project.name}.sh" />

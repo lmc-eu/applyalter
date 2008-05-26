@@ -14,4 +14,4 @@ for i in `find . -name '*.jar'`; do
   CP="$CP$CPS$i"
 done
 
-java $DEBUG -cp $CP ch.ips.g2.applyalter.ApplyAlter $*
+java $DEBUG -cp target/classes$CPS$CP ch.ips.g2.applyalter.ApplyAlter $*
