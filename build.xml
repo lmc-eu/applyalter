@@ -1,0 +1,58 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<project name="applyalter" default="compile">
+	<property name="src" value="src" />
+	<property name="target" value="target" />
+	<property name="classes" value="${target}/classes" />
+  <property name="lib" value="../../generated/output" />
+  <property name="extlib" value="../../EJB/lmcEar" />
+  <property name="db2" value="../../build-tomcat/lib" />
+
+  <fileset dir="${lib}" id="libs">
+    <include name="base.jar" />
+    <include name="G2Log.jar" />
+  </fileset>
+
+  <fileset dir="${extlib}" id="extlibs">
+    <include name="xstream*.jar" />
+    <include name="jakarta*.jar" />
+    <include name="commons-httpclient*.jar" />
+    <include name="xercesImpl*.jar" />
+  </fileset>
+
+  <fileset dir="${db2}" id="db2libs">
+    <include name="db2jcc*.jar" />
+  </fileset>
+
+	<target name="compile">
+		<mkdir dir="${classes}" />
+		<javac srcdir="${src}" destdir="${classes}" debug="on">
+			<classpath>
+	      <fileset refid="libs" />
+			</classpath>
+		</javac>
+	</target>
+
+	<target name="clean">
+		<delete dir="${target}">
+		</delete>
+	</target>
+
+	<target name="jar" depends="compile">
+		<copy todir="${target}">
+      <fileset refid="libs" />
+      <fileset refid="extlibs" />
+      <fileset refid="db2libs" />
+		</copy>
+		<jar destfile="${target}/${ant.project.name}.jar" basedir="${classes}" />
+	</target>
+
+	<target name="dist" depends="compile">
+		<zip destfile="${target}/${ant.project.name}.zip">
+			<fileset dir="${target}" includes="*.jar" />
+			<fileset dir="${basedir}" includes="${ant.project.name}.sh" />
+		</zip>
+	</target>
+
+
+</project>
