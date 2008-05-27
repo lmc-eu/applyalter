@@ -127,6 +127,8 @@ public class Alter
       checks = new ArrayList<Check>();
     if (statements == null)
       statements = new ArrayList<AlterStatement>();
+    if (schema == null)
+      schema = DEFAULT_SCHEMA;
     return this;
   }
   
