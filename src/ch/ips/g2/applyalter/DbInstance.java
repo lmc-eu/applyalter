@@ -3,12 +3,16 @@ import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.SQLException;
 
+import com.thoughtworks.xstream.annotations.XStreamAlias;
+import com.thoughtworks.xstream.annotations.XStreamOmitField;
+
 
 /**
  * Database instance configuration. This class is not thread safe.
  * @author Martin Caslavsky &lt;martin.caslavsky@ips-ag.cz&gt;
  * @version $Id$
  */
+@XStreamAlias("dbinstance")
 public class DbInstance
 {
   private static final String DB_DRIVER = "com.ibm.db2.jcc.DB2Driver";
@@ -21,6 +25,7 @@ public class DbInstance
   public String user;
   public String pass;
   private Connection con;
+  @XStreamOmitField
   private boolean used;
   
   static {

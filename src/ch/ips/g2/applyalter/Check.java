@@ -2,15 +2,22 @@ package ch.ips.g2.applyalter;
 
 import java.sql.Connection;
 
+import com.thoughtworks.xstream.annotations.XStreamAlias;
+import com.thoughtworks.xstream.annotations.XStreamAsAttribute;
+
 /**
  * Check if object exists in database.
  * @author Martin Caslavsky &lt;martin.caslavsky@ips-ag.cz&gt;
  * @version $Id$
  */
+@XStreamAlias("check")
 public class Check
 {
+  @XStreamAsAttribute
   public CheckType type;
+  @XStreamAsAttribute
   public String schema;
+  @XStreamAsAttribute
   public String name;
   
   public Check() {

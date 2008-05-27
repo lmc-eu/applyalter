@@ -1,5 +1,6 @@
 package ch.ips.g2.applyalter;
 
+import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.IOException;
@@ -14,6 +15,13 @@ import java.util.Enumeration;
 import java.util.List;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipFile;
+
+import org.xml.sax.InputSource;
+
+import ch.ips.base.BaseXMLDeserializer;
+
+import com.thoughtworks.xstream.XStream;
+import com.thoughtworks.xstream.XStreamException;
 
 
 /**
@@ -49,13 +57,30 @@ public class ApplyAlter
    */
   protected RunMode runmode;
   
+  protected XStream xstream = new XStream();
+  
   /**
    * Create instance
    * @param dbconfigfile XML serialized {@link DbConfig} (database configuration)
    */
+  @SuppressWarnings("unchecked")
   public ApplyAlter(String dbconfigfile, RunMode runmode, boolean ignorefailures) {
-    db = new DbConfig(dbconfigfile, ignorefailures);
     this.runmode = runmode;
+    xstream.processAnnotations(Alter.class);
+    xstream.processAnnotations(SQL.class);
+    xstream.processAnnotations(Comment.class);
+    xstream.processAnnotations(Migration.class);
+    xstream.processAnnotations(DbInstance.class);
+    xstream.alias("db", List.class);
+    
+    try {
+      List<DbInstance> d = (List<DbInstance>) xstream.fromXML(new FileInputStream(dbconfigfile));
+      db = new DbConfig(d, ignorefailures);
+    } catch (FileNotFoundException e) {
+      throw new ApplyAlterException("File not found " + dbconfigfile, e);
+    } catch (XStreamException e) {
+      throw new ApplyAlterException("Unable to deserialize DbConfig from file " + dbconfigfile);
+    }
   }
   
   /**
@@ -80,18 +105,37 @@ public class ApplyAlter
     // actually apply them
     apply(a.toArray(new Alter[a.size()]));
   }
-  
+
+  /**
+   * Create new instance from XML serialized form
+   * @param file identifier for {@link Alter#setId()}
+   * @param i input stream to read from
+   * @return new instance
+   */
+  public Alter newAlter(String file, InputStream i)
+  {
+    Alter a = null;
+    try {
+      a = (Alter) xstream.fromXML(i);
+    } catch (XStreamException e) {
+      throw new ApplyAlterException("Unable to deserialize Alter from file " + file);
+    }
+    // get file name part
+    a.setId(new File(file).getName());
+    return a;
+  }
+
   /**
    * Create Alter instance from XML serialized from file 
    * @param file XML serialized Alter
    * @return new Alter instance
    * @throws ApplyAlterException if file can not be found
    */
-  protected static Alter fromFile(String file) throws ApplyAlterException
+  protected Alter fromFile(String file) throws ApplyAlterException
   {
     try {
       FileInputStream i = new FileInputStream(file);
-      return Alter.newInstance( file, i);
+      return newAlter(file, i);
     } catch (FileNotFoundException e) {
       throw new ApplyAlterException("File not found " + file, e);
     }
@@ -104,7 +148,7 @@ public class ApplyAlter
    * @return list of new Alter instances
    * @throws ApplyAlterException if error occurs during zip file processing
    */
-  protected static List<Alter> fromZip(String zipfile) {
+  protected List<Alter> fromZip(String zipfile) {
     try {
       ZipFile z = new ZipFile(zipfile);
       Enumeration<? extends ZipEntry> e = z.entries();
@@ -123,7 +167,7 @@ public class ApplyAlter
       for (ZipEntry i: t) {
         String id = i.getName();
         InputStream s = z.getInputStream(i);
-        a.add(Alter.newInstance(id, s));
+        a.add(newAlter(id, s));
       }
 
       return a;
@@ -219,7 +263,7 @@ public class ApplyAlter
               System.out.printf("Database instance %s %s\n", dbid, d.getUrl());
   
               // do checks
-              if (check(c, a.getCheck())) {
+              if (check(c, a.getCheckok())) {
                 System.out.println("Alter applied already, skipping");
                 continue DbLoop;
               }

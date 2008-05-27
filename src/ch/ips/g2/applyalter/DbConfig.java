@@ -24,14 +24,8 @@ public class DbConfig
   protected boolean ignorefailures;
   
   @SuppressWarnings("unchecked")
-  public DbConfig(String file, boolean ignorefailures) {
-    try {
-      d = (List<DbInstance>) new BaseXMLDeserializer().fromXML(new InputSource(new FileInputStream(file)));
-    } catch (FileNotFoundException e) {
-      throw new ApplyAlterException("File not found " + file, e);
-    }
-    if (d == null)
-      throw new ApplyAlterException("Unable to deserialize DbConfig from file " + file);
+  public DbConfig(List<DbInstance> d, boolean ignorefailures) {
+    this.d = d;
     for (DbInstance i: d)
       i.getConnection();
     this.ignorefailures = ignorefailures;

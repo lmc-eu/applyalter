@@ -4,6 +4,8 @@ import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.SQLException;
 
+import com.thoughtworks.xstream.annotations.XStreamAlias;
+
 /**
  * Migration script, which wouldnt fit to one transaction
  * database/alter2/b_7.1/nas_7.1/alter-common_fn.sql
@@ -11,6 +13,7 @@ import java.sql.SQLException;
  * @author Martin Caslavsky &lt;martin.caslavsky@ips-ag.cz&gt;
  * @version $Id$
  */
+@XStreamAlias("migration")
 public class Migration extends AbstractStatement
 {
   

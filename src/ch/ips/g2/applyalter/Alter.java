@@ -1,14 +1,13 @@
 package ch.ips.g2.applyalter;
-import java.io.File;
-import java.io.InputStream;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 
-import org.xml.sax.InputSource;
 
-import ch.ips.base.BaseXMLDeserializer;
+import com.thoughtworks.xstream.annotations.XStreamAlias;
+import com.thoughtworks.xstream.annotations.XStreamImplicit;
+
 
 /**
  * This class holds alter script (list of alter statements) which
@@ -17,12 +16,18 @@ import ch.ips.base.BaseXMLDeserializer;
  * @author Martin Caslavsky &lt;martin.caslavsky@ips-ag.cz&gt;
  * @version $Id$
  */
+
+@XStreamAlias("alter")
 public class Alter
 {
   private String id;
-  public String check;
+  @XStreamAlias("checkok")
+  public String checkok;
+  @XStreamImplicit
   public List<Check> checks = new ArrayList<Check>();
+  @XStreamImplicit
   public Set<DbInstanceType> instances = new HashSet<DbInstanceType>();
+  @XStreamImplicit
   public List<AlterStatement> statements = new ArrayList<AlterStatement>();
   
   public Alter() {
@@ -36,13 +41,13 @@ public class Alter
   public Alter(Set<DbInstanceType> instances, String check, AlterStatement... statements) {
     this();
     this.instances = instances;
-    this.check = check;
+    this.checkok = check;
     addStatements(statements);
   }
   public Alter(DbInstanceType instance, String check, AlterStatement... statements) {
     this();
     this.instances.add(instance);
-    this.check = check;
+    this.checkok = check;
     addStatements(statements);
   }
   
@@ -83,13 +88,13 @@ public class Alter
     this.id = id;
   }
   
-  public String getCheck()
+  public String getCheckok()
   {
-    return check;
+    return checkok;
   }
-  public void setCheck(String check)
+  public void setCheckok(String check)
   {
-    this.check = check;
+    this.checkok = check;
   }
   public List<Check> getChecks()
   {
@@ -104,22 +109,13 @@ public class Alter
       this.checks.add(i);
     }
   }
-  /**
-   * Create new instance from XML serialized form
-   * @param file identifier for {@link Alter#setId()}
-   * @param i input stream to read from
-   * @return new instance
-   */
-  public static Alter newInstance(String file, InputStream i)
-  {
-    Alter a = (Alter) new BaseXMLDeserializer().fromXML(new InputSource(i));
-    if (a == null)
-      throw new ApplyAlterException("Unable to deserialize Alter from file " + file);
-    // get file name part
-    a.setId(new File(file).getName());
-    return a;
+
+  private Object readResolve() {
+    if (checks == null)
+      checks = new ArrayList<Check>();
+    if (statements == null)
+      statements = new ArrayList<AlterStatement>();
+    return this;
   }
-
-
   
 }
