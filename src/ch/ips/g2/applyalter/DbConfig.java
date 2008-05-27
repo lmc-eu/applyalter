@@ -1,12 +1,6 @@
 package ch.ips.g2.applyalter;
-import java.io.FileInputStream;
-import java.io.FileNotFoundException;
 import java.sql.SQLException;
 import java.util.List;
-
-import org.xml.sax.InputSource;
-
-import ch.ips.base.BaseXMLDeserializer;
 
 
 /**

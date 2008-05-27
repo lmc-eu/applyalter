@@ -16,10 +16,6 @@ import java.util.List;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipFile;
 
-import org.xml.sax.InputSource;
-
-import ch.ips.base.BaseXMLDeserializer;
-
 import com.thoughtworks.xstream.XStream;
 import com.thoughtworks.xstream.XStreamException;
 
@@ -183,13 +179,13 @@ public class ApplyAlter
    * @return true if object exists in database
    * @throws ApplyAlterException
    */
-  protected static boolean check(Connection c, Check a) throws ApplyAlterException
+  protected static boolean check(Connection c, Check a, String schema) throws ApplyAlterException
   {
     a.check();
     PreparedStatement s = null;
     try {
       String sql = a.getType().getSQL();
-      String schema = a.getSchema().toUpperCase();
+      schema = schema.toUpperCase();
       String name = a.getName().toUpperCase();
       System.out.printf("Check: %s %s %s\n", sql, schema, name);
       s = c.prepareStatement(sql);
@@ -260,7 +256,8 @@ public class ApplyAlter
             dbid = d.getId();
             try {
               Connection c = d.getConnection();
-              System.out.printf("Database instance %s %s\n", dbid, d.getUrl());
+              System.out.printf("Database instance %s %s, schema %s\n", dbid, d.getUrl(), a.getSchema());
+              d.setSchema(a.getSchema());
   
               // do checks
               if (check(c, a.getCheckok())) {
@@ -268,7 +265,7 @@ public class ApplyAlter
                 continue DbLoop;
               }
               for (Check i: a.getChecks())
-                if (check(c, i)) {
+                if (check(c, i, a.getSchema())) {
                   System.out.println("Alter applied already, skipping");
                   continue DbLoop;
                 }

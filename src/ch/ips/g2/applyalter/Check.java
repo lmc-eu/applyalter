@@ -1,7 +1,5 @@
 package ch.ips.g2.applyalter;
 
-import java.sql.Connection;
-
 import com.thoughtworks.xstream.annotations.XStreamAlias;
 import com.thoughtworks.xstream.annotations.XStreamAsAttribute;
 
@@ -16,17 +14,14 @@ public class Check
   @XStreamAsAttribute
   public CheckType type;
   @XStreamAsAttribute
-  public String schema;
-  @XStreamAsAttribute
   public String name;
   
   public Check() {
     super();
   }
-  public Check(CheckType type, String schema, String name) {
+  public Check(CheckType type, String name) {
     this();
     this.type = type;
-    this.schema = schema;
     this.name = name;
   }
   public CheckType getType()
@@ -36,14 +31,6 @@ public class Check
   public void setType(CheckType type)
   {
     this.type = type;
-  }
-  public String getSchema()
-  {
-    return schema;
-  }
-  public void setSchema(String schema)
-  {
-    this.schema = schema;
   }
   public String getName()
   {
@@ -55,8 +42,6 @@ public class Check
   }
   
   public void check() {
-    if (schema == null || "".equals(schema.trim()))
-      throw new IllegalStateException("Schema have to be filled");
     if (name == null || "".equals(name.trim()))
       throw new IllegalStateException("Name have to be filled");
     if (type == null)
@@ -66,12 +51,7 @@ public class Check
   @Override
   public String toString()
   {
-    return String.format("%s %s.%s", type, schema, name);
-  }
-
-  public static void main(String[] args) throws Exception {
-    Connection c = Dump.m.getConnection();
-    System.out.println(ApplyAlter.check(c, Dump.ch));
+    return String.format("%s %s", type, name);
   }
   
 }

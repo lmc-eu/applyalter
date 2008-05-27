@@ -60,6 +60,19 @@ public class DbInstance
   }
   
   /**
+   * Change database schema on this databse instance
+   * @param schema schema name to set
+   * @throws ApplyAlterException if schema can not be set
+   */
+  public void setSchema(String schema) throws ApplyAlterException {
+    try {
+      con.setCatalog(schema);
+    } catch (SQLException e) {
+      throw new ApplyAlterException("Can not set schema " + schema, e);
+    }
+  }
+  
+  /**
    * Get a current connection to this database instance with auto commit turned off  
    * @return connection to this database instance
    * @throws ApplyAlterException if connection could not be acquired

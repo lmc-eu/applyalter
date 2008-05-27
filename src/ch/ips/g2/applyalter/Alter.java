@@ -6,6 +6,7 @@ import java.util.Set;
 
 
 import com.thoughtworks.xstream.annotations.XStreamAlias;
+import com.thoughtworks.xstream.annotations.XStreamAsAttribute;
 import com.thoughtworks.xstream.annotations.XStreamImplicit;
 
 
@@ -20,7 +21,10 @@ import com.thoughtworks.xstream.annotations.XStreamImplicit;
 @XStreamAlias("alter")
 public class Alter
 {
+  public static final String DEFAULT_SCHEMA = "wasg2";
   private String id;
+  @XStreamAsAttribute
+  public String schema = DEFAULT_SCHEMA;
   @XStreamAlias("checkok")
   public String checkok;
   @XStreamImplicit
@@ -59,6 +63,14 @@ public class Alter
   public List<AlterStatement> getStatements()
   {
     return statements;
+  }
+  public String getSchema()
+  {
+    return schema;
+  }
+  public void setSchema(String schema)
+  {
+    this.schema = schema;
   }
   public void setStatements(List<AlterStatement> statements)
   {
