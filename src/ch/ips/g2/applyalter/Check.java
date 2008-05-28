@@ -45,7 +45,7 @@ public class Check
     if (name == null || "".equals(name.trim()))
       throw new IllegalStateException("Name have to be filled");
     if (type == null)
-      throw new IllegalStateException("Name have to be filled");
+      throw new IllegalStateException("Type have to be filled");
   }
   
   @Override
