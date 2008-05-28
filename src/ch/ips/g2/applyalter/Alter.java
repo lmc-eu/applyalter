@@ -22,7 +22,6 @@ public class Alter
   public static final String DEFAULT_SCHEMA = "wasg2";
   private String id;
   public String schema = DEFAULT_SCHEMA;
-  @XStreamAlias("checkok")
   public String checkok;
   @XStreamImplicit
   public List<Check> checks = new ArrayList<Check>();

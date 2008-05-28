@@ -185,12 +185,22 @@ public class ApplyAlter
     PreparedStatement s = null;
     try {
       String sql = a.getType().getSQL();
-      schema = schema.toUpperCase();
-      String name = a.getName().toUpperCase();
-      System.out.printf("Check: %s %s %s\n", sql, schema, name);
+      System.out.print("Check: " + sql + " ");
       s = c.prepareStatement(sql);
-      s.setString(1, schema);
-      s.setString(2, name);
+      int i = 1;
+      schema = schema.toUpperCase();
+      s.setString(i++, schema);
+      System.out.print(schema + " ");
+      if (a.table != null) {
+        String table = a.getTable().toUpperCase();
+        System.out.print(table + " ");
+        s.setString(i++, table);
+      }
+      String name = a.getName().toUpperCase();
+      System.out.print(name + " ");
+      s.setString(i++, name);
+      System.out.println();
+      
       s.execute();
       return s.getResultSet().next();
     } catch (SQLException e) {

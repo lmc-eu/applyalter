@@ -15,6 +15,8 @@ public class Check
   public CheckType type;
   @XStreamAsAttribute
   public String name;
+  @XStreamAsAttribute
+  public String table;
   
   public Check() {
     super();
@@ -23,6 +25,12 @@ public class Check
     this();
     this.type = type;
     this.name = name;
+  }
+  public Check(CheckType type, String name, String table) {
+    super();
+    this.type = type;
+    this.name = name;
+    this.table = table;
   }
   public CheckType getType()
   {
@@ -40,12 +48,21 @@ public class Check
   {
     this.name = name;
   }
-  
+  public String getTable()
+  {
+    return table;
+  }
+  public void setTable(String table)
+  {
+    this.table = table;
+  }
   public void check() {
     if (name == null || "".equals(name.trim()))
       throw new IllegalStateException("Name have to be filled");
     if (type == null)
       throw new IllegalStateException("Type have to be filled");
+    if ((type.equals(CheckType.reference) || type.equals(CheckType.column)) && table == null)
+      throw new IllegalStateException("Table have to be filled for reference and column");
   }
   
   @Override
