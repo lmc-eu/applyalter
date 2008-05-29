@@ -16,4 +16,6 @@ public interface AlterStatement
   public String getSQLStatement();
   
   public PreparedStatement getPreparedStatement(Connection con) throws SQLException;
+  
+  public boolean canFail();
 }

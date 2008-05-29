@@ -290,7 +290,14 @@ public class ApplyAlter
                 if (stm == null || RunMode.print.equals(runmode))
                   continue;
                 t = s.getPreparedStatement(c);
-                t.execute();
+                try {
+                  t.execute();
+                } catch (SQLException e) {
+                  if (s.canFail())
+                    System.out.println(e.getMessage() + "\nbut continuing as this can fail");
+                  else
+                    throw e;
+                }
               }
               long stop = System.currentTimeMillis();
               System.out.printf("Alter %s on %s took %s ms\n", a.getId(), dbid, stop-start);

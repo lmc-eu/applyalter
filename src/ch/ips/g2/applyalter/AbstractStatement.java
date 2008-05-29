@@ -7,6 +7,8 @@ import java.sql.SQLException;
 public abstract class AbstractStatement implements AlterStatement
 {
   public String statement;
+  
+  public boolean canfail;
 
   public String getStatement()
   {
@@ -16,6 +18,16 @@ public abstract class AbstractStatement implements AlterStatement
   public String getSQLStatement()
   {
     return statement;
+  }
+
+  public boolean canFail()
+  {
+    return canfail;
+  }
+
+  public void setCanfail(boolean canfail)
+  {
+    this.canfail = canfail;
   }
 
   public PreparedStatement getPreparedStatement(Connection con) throws SQLException
