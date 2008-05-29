@@ -253,7 +253,7 @@ public class ApplyAlter
     String dbid = null;
     String statement = null;
     PreparedStatement t = null;
-    ApplyAlterExceptions aae = new ApplyAlterExceptions();
+    ApplyAlterExceptions aae = new ApplyAlterExceptions(db.isIgnorefailures());
     try {
       // for all alter scripts
       for (Alter a: alters) {
@@ -296,12 +296,9 @@ public class ApplyAlter
               System.out.printf("Alter %s on %s took %s ms\n", a.getId(), dbid, stop-start);
               
             } catch (SQLException e) {
-              ApplyAlterException ex = new ApplyAlterException("Can not execute alter statement on db " + dbid + "\n" + statement, e);
-              if (db.isIgnorefailures()) aae.add(ex);
-              else throw ex;
+              aae.addOrThrow(new ApplyAlterException("Can not execute alter statement on db " + dbid + "\n" + statement, e));
             } catch (ApplyAlterException e) {
-              if (db.isIgnorefailures()) aae.add(e);
-              else throw e;
+              aae.addOrThrow(e);
             } finally {
               if (t != null)
                 try {

@@ -51,16 +51,14 @@ public class DbConfig
    */
   public void commitUsed() throws ApplyAlterException
   {
-    ApplyAlterExceptions aae = new ApplyAlterExceptions();
+    ApplyAlterExceptions aae = new ApplyAlterExceptions(ignorefailures);
     for (DbInstance i: d) {
       if (i.isUsed())
         try {
           System.out.println("Commiting " + i.getId());
           i.getConnection().commit();
         } catch (SQLException e) {
-          ApplyAlterException ex = new ApplyAlterException("Error commiting", e);
-          if (ignorefailures) aae.add(ex);
-          else throw ex;
+          aae.addOrThrow(new ApplyAlterException("Error commiting", e));
         }
     }
     if (!aae.isEmpty())

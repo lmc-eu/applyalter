@@ -12,7 +12,16 @@ import java.util.List;
 public class ApplyAlterExceptions extends ApplyAlterException
 {
   protected List<ApplyAlterException> ex = new ArrayList<ApplyAlterException>();
+  protected boolean ignorefailures;
   
+  /**
+   * Should be exceptions collected, or immediately thrown 
+   * @param ignorefailures true if collected
+   */
+  public ApplyAlterExceptions(boolean ignorefailures) {
+    this.ignorefailures = ignorefailures;
+  }
+
   /**
    * Add exception to list
    * @param e exception
@@ -22,6 +31,18 @@ public class ApplyAlterExceptions extends ApplyAlterException
       this.ex.addAll(((ApplyAlterExceptions)e).ex);
     else
       this.ex.add(e);
+  }
+  
+  /**
+   * Add an exception to the list or throw it, depending on this class constructor parameter
+   * @param e exception to collected or to throw
+   * @throws ApplyAlterException this method parameter e (if this object is constructed to not collect exceptions) 
+   */
+  public void addOrThrow(ApplyAlterException e) throws ApplyAlterException {
+    if (ignorefailures)
+      add(e);
+    else
+      throw e;
   }
 
   @Override
