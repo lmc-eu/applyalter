@@ -29,7 +29,7 @@
 		<javac srcdir="${src}" destdir="${classes}" debug="on">
 			<classpath>
         <fileset refid="libs" />
-        <fileset refid="extlib" />
+        <fileset refid="extlibs" />
 			</classpath>
 		</javac>
 	</target>
