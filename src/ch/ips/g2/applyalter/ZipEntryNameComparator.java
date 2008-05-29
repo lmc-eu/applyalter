@@ -4,6 +4,8 @@ import java.util.zip.ZipEntry;
 
 /**
  * Alphabeticaly compares {@link ZipEntry ZipEntries} according to their {@link ZipEntry#getName()}
+ * @author Martin Caslavsky &lt;martin.caslavsky@ips-ag.cz&gt;
+ * @version $Id$
  */
 public class ZipEntryNameComparator implements
     Comparator<ZipEntry>

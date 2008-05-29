@@ -18,8 +18,14 @@ public enum CheckType {
    */
   routine,
   
+  /**
+   * foreign key
+   */
   reference("tab", "constname"),
   
+  /**
+   * database column
+   */
   column("tab", "colname")
   ;
   

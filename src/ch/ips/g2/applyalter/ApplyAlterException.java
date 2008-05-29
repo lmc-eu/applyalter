@@ -2,6 +2,11 @@ package ch.ips.g2.applyalter;
 import java.io.PrintStream;
 
 
+/**
+ * Exception during Alter script applying
+ * @author Martin Caslavsky &lt;martin.caslavsky@ips-ag.cz&gt;
+ * @version $Id$
+ */
 public class ApplyAlterException extends RuntimeException
 {
 
@@ -29,6 +34,10 @@ public class ApplyAlterException extends RuntimeException
   }
 
 
+  /**
+   * Print error messages from chain of exceptions
+   * @param out where to print
+   */
   public void printMessages(PrintStream out) {
     Throwable e = this;
     do {
