@@ -341,11 +341,11 @@ public class ApplyAlter
       new ApplyAlter(args[0], rnmd, ignfail)
         .apply(param);
       
-    } catch (ApplyAlterException e) {
-      if (printstacktrace && !ignfail)
-        e.printStackTrace(System.err);
+    } catch (Throwable e) {
+      if (e instanceof ApplyAlterException && (!printstacktrace || ignfail)) 
+        ((ApplyAlterException)e).printMessages(System.err);
       else
-        e.printMessages(System.err);
+        e.printStackTrace(System.err);
       System.exit(-1);
     }
   }
