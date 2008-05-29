@@ -185,7 +185,7 @@ public class ApplyAlter
     PreparedStatement s = null;
     try {
       String sql = a.getType().getSQL();
-      System.out.print("Check: " + sql + " ");
+      System.out.print("Check: " + sql + " (");
       s = c.prepareStatement(sql);
       int i = 1;
       schema = schema.toUpperCase();
@@ -197,9 +197,9 @@ public class ApplyAlter
         s.setString(i++, table);
       }
       String name = a.getName().toUpperCase();
-      System.out.print(name + " ");
+      System.out.print(name);
       s.setString(i++, name);
-      System.out.println();
+      System.out.println(")");
       
       s.execute();
       return s.getResultSet().next();
@@ -294,7 +294,7 @@ public class ApplyAlter
                   t.execute();
                 } catch (SQLException e) {
                   if (s.canFail())
-                    System.out.println(e.getMessage() + "\nbut continuing as this can fail");
+                    System.out.println("  " + e.getMessage() + "\n  but continuing as this is allowed to fail");
                   else
                     throw e;
                 }
