@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 
-<project name="applyalter" default="jar">
+<project name="applyalter" default="jar" basedir=".">
 	<property name="src" value="src" />
 	<property name="target" value="target" />
 	<property name="classes" value="${target}/classes" />
@@ -28,7 +28,8 @@
 		<mkdir dir="${classes}" />
 		<javac srcdir="${src}" destdir="${classes}" debug="on">
 			<classpath>
-				<fileset refid="libs" />
+        <fileset refid="libs" />
+        <fileset refid="extlib" />
 			</classpath>
 		</javac>
 	</target>
