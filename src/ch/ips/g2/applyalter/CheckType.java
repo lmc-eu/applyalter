@@ -19,6 +19,11 @@ public enum CheckType {
   routine,
   
   /**
+   * Trigger 
+   */
+  trigger("tab", "trigname"),
+  
+  /**
    * foreign key
    */
   reference("tab", "constname"),
