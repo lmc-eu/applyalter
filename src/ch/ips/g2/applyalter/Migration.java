@@ -2,6 +2,7 @@ package ch.ips.g2.applyalter;
 
 import java.sql.Connection;
 import java.sql.PreparedStatement;
+import java.sql.ResultSet;
 import java.sql.SQLException;
 
 import com.thoughtworks.xstream.annotations.XStreamAlias;
@@ -23,6 +24,7 @@ public class Migration extends AbstractStatement
   public String description;
   public Integer fromid;
   public Integer toid;
+  public String toidexpr;
   public Integer step;
 
   public Migration() {
@@ -52,7 +54,7 @@ public class Migration extends AbstractStatement
   @Override
   public String getSQLStatement()
   {
-    return isFt() ? "call g2fn.blockupdate(?,?,?,?)" : "call g2fn.blockupdate_ft(?,?,?,?,?,?,?)";
+    return isFt() ? "call g2fn.blockupdate_ft(?,?,?,?,?,?,?)" : "call g2fn.blockupdate(?,?,?,?)";
   }
 
   @Override
@@ -67,12 +69,23 @@ public class Migration extends AbstractStatement
     s.setString(i++, statement);
     if (isFt()) {
       s.setInt(i++, fromid);
-      s.setInt(i++, toid);
+      Integer ti = toidexpr != null ? getToidexpr(con) : toid;
+      s.setInt(i++, ti);
       s.setInt(i++, step);      
     }
     return s;
   }
   
+  private Integer getToidexpr(Connection con) throws SQLException
+  {
+    PreparedStatement s = con.prepareStatement(toidexpr);
+    s.execute();
+    ResultSet rs = s.getResultSet();
+    if (!rs.next())
+      throw new ApplyAlterException("SQL statement toidexpr returned no result");
+    return rs.getInt(1);
+  }
+
   /**
    * Is this blockupdate_ft() or blockupdate()?
    * @return true if blockupdate_ft()
@@ -80,7 +93,7 @@ public class Migration extends AbstractStatement
    */
   public boolean isFt() throws IllegalArgumentException {
     if (logid != null && maxblkcnt != null && description != null && statement != null && 
-        fromid != null && toid != null && step != null)
+        fromid != null && (toid != null || toidexpr != null) && step != null)
       return true;
     else if (logid != null && maxblkcnt != null && description != null && statement != null)
       return false;
@@ -138,6 +151,16 @@ public class Migration extends AbstractStatement
     this.toid = toid;
   }
 
+  public String getToidexpr()
+  {
+    return toidexpr;
+  }
+
+  public void setToidexpr(String toidexpr)
+  {
+    this.toidexpr = toidexpr;
+  }
+
   public Integer getStep()
   {
     return step;
@@ -148,4 +171,19 @@ public class Migration extends AbstractStatement
     this.step = step;
   }
 
+  @Override
+  public String toString()
+  {
+    StringBuilder b = new StringBuilder();
+    b.append(this.getClass().getSimpleName()).append(": ");
+    b.append(getSQLStatement()).append(" ").append(statement).append("\n");
+    b.append("logid: ").append(logid).append("\n");
+    b.append("maxblkcnt: ").append(maxblkcnt).append("\n");
+    b.append("description: ").append(description).append("\n");
+    b.append("fromid: ").append(fromid).append("\n");
+    b.append("toid: ").append(toid).append("\n");
+    b.append("toidexpr: ").append(toidexpr).append("\n");
+    b.append("step: ").append(step).append("\n");
+    return b.toString();    
+  }
 }
