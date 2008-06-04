@@ -45,6 +45,7 @@
         <xs:element name="description" type="xs:string" />
         <xs:element name="fromid" type="xs:int" minOccurs="0" />
         <xs:element name="toid" type="xs:int" minOccurs="0" />
+        <xs:element name="toidexpr" type="xs:string" minOccurs="0" />
         <xs:element name="step" type="xs:int" minOccurs="0" />
         <xs:element ref="canfail" minOccurs="0" maxOccurs="1" />
         <xs:element name="statement" type="xs:string" minOccurs="1" maxOccurs="1" />
