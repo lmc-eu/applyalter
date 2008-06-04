@@ -26,8 +26,19 @@ public enum RunMode {
    * @return RunMode from system property or default value
    */
   public static RunMode getProperty(String name, RunMode def) {
-    RunMode result = def;
     String p = System.getProperty(name);
+    return getRunMode(p, def);
+  }
+
+  /**
+   * Get new Instance of RunMode from string
+   * @param p string
+   * @param def default value
+   * @return RunMode from string or default value
+   */
+  public static RunMode getRunMode(String p, RunMode def)
+  {
+    RunMode result = def;
     try {
       if (p != null)
         result = RunMode.valueOf(p);

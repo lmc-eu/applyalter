@@ -14,9 +14,11 @@
 	</fileset>
 
 	<fileset dir="${extlib}" id="extlibs">
-		<include name="xstream*.jar" />
+    <include name="xstream*.jar" />
+    <include name="xpp3*.jar" />
 		<include name="jakarta*.jar" />
-		<include name="commons-httpclient*.jar" />
+    <include name="commons-httpclient*.jar" />
+    <include name="commons-cli*.jar" />
 		<include name="xercesImpl*.jar" />
 	</fileset>
 
@@ -54,6 +56,20 @@
 			<fileset dir="${basedir}" includes="${ant.project.name}.sh" />
 		</zip>
 	</target>
-
+	
+  <target name="validate">
+	
+  	<pathconvert dirsep="/" property="xsd.file">
+    	<path>
+    	   <pathelement location="applyalter.xsd"/>
+    	</path>
+  	</pathconvert>
+  	<xmlvalidate lenient="false" failonerror="false" warn="true">
+  		<fileset dir="../../database/alter2" includes="**/*.xml" />
+  	  <attribute name="http://apache.org/xml/features/validation/schema" value="true"/>
+  	  <attribute name="http://xml.org/sax/features/namespaces" value="true"/>
+  	  <property name="http://apache.org/xml/properties/schema/external-noNamespaceSchemaLocation" value="${xsd.file}"/>
+  	</xmlvalidate>
+	</target>
 
 </project>

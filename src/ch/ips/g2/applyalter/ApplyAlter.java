@@ -16,6 +16,14 @@ import java.util.List;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipFile;
 
+import org.apache.commons.cli.BasicParser;
+import org.apache.commons.cli.CommandLine;
+import org.apache.commons.cli.CommandLineParser;
+import org.apache.commons.cli.HelpFormatter;
+import org.apache.commons.cli.Options;
+import org.apache.commons.cli.PosixParser;
+import org.apache.commons.cli.UnrecognizedOptionException;
+
 import com.thoughtworks.xstream.XStream;
 import com.thoughtworks.xstream.XStreamException;
 
@@ -27,15 +35,16 @@ import com.thoughtworks.xstream.XStreamException;
  */
 public class ApplyAlter
 {
+  private static final String PRINTSTACKTRACE = "p";
   public static final String CHECK_OK = "OK";
   /**
    * Run mode system property name
    */
-  public static final String RUN_MODE = "runmode";
+  public static final String RUN_MODE = "r";
   /**
    * Ignore failures system property name
    */
-  public static final String IGNORE_FAILURES = "ignorefailures";
+  public static final String IGNORE_FAILURES = "i";
   /**
    * Suffix for zip file
    */
@@ -222,14 +231,15 @@ public class ApplyAlter
    */
   protected static boolean check(Connection c, String sql) throws ApplyAlterException
   {
-    if (sql == null)
+    if (sql == null || "".equals(sql.trim()))
       return false;
     PreparedStatement s = null;
     try {
       System.out.printf("Check: %s\n", sql);
       s = c.prepareStatement(sql);
       ResultSet rs = s.executeQuery();
-      rs.next();
+      if (!rs.next())
+        return false;
       String check = rs.getString(1);
       return (CHECK_OK.equalsIgnoreCase(check));
     } catch (SQLException e) {
@@ -328,23 +338,41 @@ public class ApplyAlter
     
   public static void main(String[] args)
   {
-    boolean ignfail = Boolean.getBoolean(IGNORE_FAILURES);
-    boolean printstacktrace = Boolean.getBoolean("printstacktrace");
-    RunMode rnmd = RunMode.getProperty(RUN_MODE, RunMode.sharp);
-
+    Options o = new Options();
+    o.addOption(IGNORE_FAILURES, false, "ignore failures");
+    o.addOption(PRINTSTACKTRACE, false, "print stacktrace");
+    o.addOption(RUN_MODE, true, "runmode");
+    
+    boolean ignfail = false;
+    boolean printstacktrace = false;
+    RunMode rnmd = RunMode.sharp;
+    
     try {
-      if (args.length < 1)
+      CommandLineParser parser = new BasicParser();
+      CommandLine cmd = parser.parse(o, args);
+      
+      rnmd = RunMode.getRunMode(cmd.getOptionValue(RUN_MODE), rnmd);
+      ignfail = Boolean.valueOf(cmd.hasOption(IGNORE_FAILURES));
+      printstacktrace = Boolean.valueOf(cmd.hasOption(PRINTSTACKTRACE));
+
+      String[] a = cmd.getArgs();
+      if (a.length < 1)
         throw new ApplyAlterException("Run with params <dbconfig.xml> (alter.xml|alter.zip) ...");
       
       // prepare arguments
-      String[] param = new String[args.length-1];
-      System.arraycopy(args, 1, param, 0, args.length-1);
+      String[] param = new String[a.length-1];
+      System.arraycopy(a, 1, param, 0, a.length-1);
       
       // go
-      System.out.printf("ApplyAlter started in run mode: %s\n", rnmd);
-      new ApplyAlter(args[0], rnmd, ignfail)
+      System.out.println("ApplyAlter started");
+      System.out.printf("run mode: %s\n", rnmd);
+      System.out.printf("ignore failures: %s\n", ignfail);
+      System.out.printf("print stacktrace: %s\n", printstacktrace);
+      new ApplyAlter(a[0], rnmd, ignfail)
         .apply(param);
       
+    } catch (UnrecognizedOptionException e) {
+      new HelpFormatter().printHelp("applyalter [options] <dbconfig.xml> (alter.xml|alter.zip) ...", o, false);
     } catch (Throwable e) {
       if (e instanceof ApplyAlterException && (!printstacktrace || ignfail)) 
         ((ApplyAlterException)e).printMessages(System.err);
