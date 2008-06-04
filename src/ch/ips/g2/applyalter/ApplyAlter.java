@@ -84,7 +84,7 @@ public class ApplyAlter
     } catch (FileNotFoundException e) {
       throw new ApplyAlterException("File not found " + dbconfigfile, e);
     } catch (XStreamException e) {
-      throw new ApplyAlterException("Unable to deserialize DbConfig from file " + dbconfigfile);
+      throw new ApplyAlterException("Unable to deserialize DbConfig from file " + dbconfigfile, e);
     }
   }
   
@@ -123,7 +123,7 @@ public class ApplyAlter
     try {
       a = (Alter) xstream.fromXML(i);
     } catch (XStreamException e) {
-      throw new ApplyAlterException("Unable to deserialize Alter from file " + file);
+      throw new ApplyAlterException("Unable to deserialize Alter from file " + file, e);
     }
     // get file name part
     a.setId(new File(file).getName());
