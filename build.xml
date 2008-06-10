@@ -64,7 +64,7 @@
     	   <pathelement location="applyalter.xsd"/>
     	</path>
   	</pathconvert>
-  	<xmlvalidate lenient="false" failonerror="false" warn="true">
+  	<xmlvalidate lenient="false" failonerror="true" warn="true">
   		<fileset dir="../../database/alter2" includes="**/*.xml" />
   	  <attribute name="http://apache.org/xml/features/validation/schema" value="true"/>
   	  <attribute name="http://xml.org/sax/features/namespaces" value="true"/>
