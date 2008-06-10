@@ -21,7 +21,6 @@ import org.apache.commons.cli.CommandLine;
 import org.apache.commons.cli.CommandLineParser;
 import org.apache.commons.cli.HelpFormatter;
 import org.apache.commons.cli.Options;
-import org.apache.commons.cli.PosixParser;
 import org.apache.commons.cli.UnrecognizedOptionException;
 
 import com.thoughtworks.xstream.XStream;
@@ -35,16 +34,27 @@ import com.thoughtworks.xstream.XStreamException;
  */
 public class ApplyAlter
 {
-  private static final String PRINTSTACKTRACE = "p";
+  /**
+   * Expected result of <code>&lt;checkok&gt;</code> statement
+   */
   public static final String CHECK_OK = "OK";
   /**
-   * Run mode system property name
+   * Print stacktrace parameter name
+   */
+  public static final String PRINTSTACKTRACE = "p";
+  /**
+   * Run mode parameter name
    */
   public static final String RUN_MODE = "r";
   /**
-   * Ignore failures system property name
+   * Ignore failures parameter name
    */
   public static final String IGNORE_FAILURES = "i";
+  /**
+   * User name parameter name
+   */
+  public static final String USER_NAME = "u";
+
   /**
    * Suffix for zip file
    */
@@ -63,14 +73,16 @@ public class ApplyAlter
   protected RunMode runmode;
   
   protected XStream xstream = new XStream();
+  protected String username;
   
   /**
    * Create instance
    * @param dbconfigfile XML serialized {@link DbConfig} (database configuration)
    */
   @SuppressWarnings("unchecked")
-  public ApplyAlter(String dbconfigfile, RunMode runmode, boolean ignorefailures) {
+  public ApplyAlter(String dbconfigfile, RunMode runmode, boolean ignorefailures, String username) {
     this.runmode = runmode;
+    this.username = username;
     xstream.processAnnotations(Alter.class);
     xstream.processAnnotations(SQL.class);
     xstream.processAnnotations(Comment.class);
@@ -309,8 +321,8 @@ public class ApplyAlter
                     throw e;
                 }
               }
-              long stop = System.currentTimeMillis();
-              System.out.printf("Alter %s on %s took %s ms\n", a.getId(), dbid, stop-start);
+              long time = System.currentTimeMillis()-start;
+              savelog(c, dbid, a.getId(), time);
               
             } catch (SQLException e) {
               aae.addOrThrow(new ApplyAlterException("Can not execute alter statement on db " + dbid + "\n" + statement, e));
@@ -335,13 +347,32 @@ public class ApplyAlter
     if (!aae.isEmpty()) throw aae;
   }
 
-    
+  /**
+   * Logs succesful alter to stdout and applyalter_log table
+   * @param c connection
+   * @param dbid database id
+   * @param id alter id
+   * @param time alter duration
+   * @throws SQLException if insertion fails
+   */
+  protected void savelog(Connection c, String dbid, String id, long time) throws SQLException
+  {
+    System.out.printf("Alter %s on %s took %s ms\n", id, dbid, time);    
+    PreparedStatement s = c.prepareStatement("insert into wasg2.applyalter_log (username,id,duration) values (?,?,?)");
+    int i = 1;
+    s.setString(i++, username);
+    s.setString(i++, id);
+    s.setLong(i++, time);
+    s.executeUpdate();
+  }
+
   public static void main(String[] args)
   {
     Options o = new Options();
     o.addOption(IGNORE_FAILURES, false, "ignore failures");
     o.addOption(PRINTSTACKTRACE, false, "print stacktrace");
     o.addOption(RUN_MODE, true, "runmode");
+    o.addOption(USER_NAME, true, "user name");
     
     boolean ignfail = false;
     boolean printstacktrace = false;
@@ -351,13 +382,19 @@ public class ApplyAlter
       CommandLineParser parser = new BasicParser();
       CommandLine cmd = parser.parse(o, args);
       
+      String username = cmd.getOptionValue(USER_NAME);
+      if (username == null || "".equals(username.trim()))
+        username = System.getProperty("user.name");
+      if (username == null || "".equals(username.trim()))
+        throw new UnrecognizedOptionException("User name can not be determined, use parameter -" + USER_NAME);
+      
       rnmd = RunMode.getRunMode(cmd.getOptionValue(RUN_MODE), rnmd);
       ignfail = Boolean.valueOf(cmd.hasOption(IGNORE_FAILURES));
       printstacktrace = Boolean.valueOf(cmd.hasOption(PRINTSTACKTRACE));
 
       String[] a = cmd.getArgs();
       if (a.length < 1)
-        throw new ApplyAlterException("Run with params <dbconfig.xml> (alter.xml|alter.zip) ...");
+        throw new UnrecognizedOptionException("Not enough parameters (dbconfig.xml alterscripts...)");
       
       // prepare arguments
       String[] param = new String[a.length-1];
@@ -368,10 +405,11 @@ public class ApplyAlter
       System.out.printf("run mode: %s\n", rnmd);
       System.out.printf("ignore failures: %s\n", ignfail);
       System.out.printf("print stacktrace: %s\n", printstacktrace);
-      new ApplyAlter(a[0], rnmd, ignfail)
+      new ApplyAlter(a[0], rnmd, ignfail, username)
         .apply(param);
       
     } catch (UnrecognizedOptionException e) {
+      System.out.println(e.getMessage());
       new HelpFormatter().printHelp("applyalter [options] <dbconfig.xml> (alter.xml|alter.zip) ...", o, false);
     } catch (Throwable e) {
       if (e instanceof ApplyAlterException && (!printstacktrace || ignfail)) 
