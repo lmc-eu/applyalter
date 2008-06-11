@@ -384,11 +384,19 @@ public class ApplyAlter
       return true;
     }
     //all other checks must be OK to decide that alter has been already applied
-    for ( Check i : alter.getChecks() )
+    final List<Check> checks = alter.getChecks();
+    if ( checks.isEmpty() )
+    {
+      //no checks --> not applied
+      return false;
+    }
+    for ( Check i : checks )
+    {
       if ( !check( connection, i, alter.getSchema() ) )
       {
         return false;
       }
+    }
     return true;
   }
 
