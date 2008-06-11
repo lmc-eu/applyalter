@@ -13,6 +13,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Enumeration;
 import java.util.List;
+import java.util.Set;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipFile;
 
@@ -263,8 +264,23 @@ public class ApplyAlter
         } catch (SQLException e) {}
     }
   }
-/*
- */
+  
+  /**
+   * Check if all database types in alters are defined in database configuration
+   * @param alters to check
+   * @throws ApplyAlterException if there is an unknown database type
+   */
+  protected void checkDbIds(Alter... alters) throws ApplyAlterException
+  {
+    Set<String> types = db.getDbTypes();
+    for (Alter a: alters) {
+      if (a.getInstance() == null)
+        continue;
+      for (String i: a.getInstance())
+        if (!types.contains(i))
+          throw new ApplyAlterException("Unknown database type " + i + " in alter " + a.getId() + ". Possible values: " + types);
+    }
+  }
   
   /**
    * Apply alter scripts to all or selected database instances
@@ -277,13 +293,14 @@ public class ApplyAlter
     PreparedStatement t = null;
     ApplyAlterExceptions aae = new ApplyAlterExceptions(db.isIgnorefailures());
     try {
+      checkDbIds(alters);
       // for all alter scripts
       for (Alter a: alters) {
         // for all (or selected) databases
         DbLoop:
         for (DbInstance d: db.getEntries()) {
           // apply to this instance?
-          if (a.isAllInstances() || a.getInstances().contains(d.getType())) {
+          if (a.isAllInstances() || a.getInstance().contains(d.getType())) {
             long start = System.currentTimeMillis();
             dbid = d.getId();
             try {
@@ -395,7 +412,7 @@ public class ApplyAlter
       String[] a = cmd.getArgs();
       if (a.length < 1)
         throw new UnrecognizedOptionException("Not enough parameters (dbconfig.xml alterscripts...)");
-      
+
       // prepare arguments
       String[] param = new String[a.length-1];
       System.arraycopy(a, 1, param, 0, a.length-1);

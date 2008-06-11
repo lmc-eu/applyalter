@@ -1,6 +1,8 @@
 package ch.ips.g2.applyalter;
 import java.sql.SQLException;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 
 
 /**
@@ -63,6 +65,18 @@ public class DbConfig
     }
     if (!aae.isEmpty())
       throw aae;
+  }
+
+  /**
+   * Get all DbInstance types
+   * @return database types
+   */
+  public Set<String> getDbTypes()
+  {
+    Set<String> result = new HashSet<String>(d.size());
+    for (DbInstance i: d) 
+      result.add(i.getType());
+    return result;
   }
 
 

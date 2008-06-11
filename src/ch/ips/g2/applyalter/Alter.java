@@ -26,27 +26,27 @@ public class Alter
   @XStreamImplicit
   public List<Check> checks = new ArrayList<Check>();
   @XStreamImplicit
-  public Set<DbInstanceType> instances = new HashSet<DbInstanceType>();
+  public Set<String> instance = new HashSet<String>();
   @XStreamImplicit
   public List<AlterStatement> statements = new ArrayList<AlterStatement>();
   
   public Alter() {
     super();
   }
-  public Alter(Set<DbInstanceType> instance, List<AlterStatement> statements) {
+  public Alter(Set<String> instance, List<AlterStatement> statements) {
     this();
-    this.instances = instance;
+    this.instance = instance;
     this.statements = statements;
   }
-  public Alter(Set<DbInstanceType> instances, String check, AlterStatement... statements) {
+  public Alter(Set<String> instances, String check, AlterStatement... statements) {
     this();
-    this.instances = instances;
+    this.instance = instances;
     this.checkok = check;
     addStatements(statements);
   }
-  public Alter(DbInstanceType instance, String check, AlterStatement... statements) {
+  public Alter(String instance, String check, AlterStatement... statements) {
     this();
-    this.instances.add(instance);
+    this.instance.add(instance);
     this.checkok = check;
     addStatements(statements);
   }
@@ -72,20 +72,20 @@ public class Alter
   {
     this.statements = statements;
   }
-  public Set<DbInstanceType> getInstances()
+  public Set<String> getInstance()
   {
-    return instances;
+    return instance;
   }
-  public void setInstances(Set<DbInstanceType> instances)
+  public void setInstance(Set<String> instances)
   {
-    this.instances = instances;
+    this.instance = instances;
   }
   /**
    * Apply this alter to all instances?
    * @return true if so, false otherwise
    */
   public boolean isAllInstances() {
-    return instances == null || instances.isEmpty();
+    return instance == null || instance.isEmpty();
   }
   public String getId()
   {

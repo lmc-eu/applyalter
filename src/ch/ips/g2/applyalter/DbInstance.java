@@ -18,7 +18,7 @@ public class DbInstance
   private static final String DB_DRIVER = "com.ibm.db2.jcc.DB2Driver";
   
   public String id;
-  public DbInstanceType type;
+  public String type;
   public String host;
   public Integer port;
   public String db;
@@ -39,7 +39,7 @@ public class DbInstance
   public DbInstance() {
     super();
   }
-  public DbInstance(String id, DbInstanceType type, String host, Integer port, String db, String user, String pass) {
+  public DbInstance(String id, String type, String host, Integer port, String db, String user, String pass) {
     this();
     this.id = id;
     this.type = type;
@@ -121,11 +121,11 @@ public class DbInstance
   {
     this.id = id;
   }
-  public DbInstanceType getType()
+  public String getType()
   {
     return type;
   }
-  public void setType(DbInstanceType type)
+  public void setType(String type)
   {
     this.type = type;
   }
