@@ -22,6 +22,7 @@ public class Alter
   public static final String DEFAULT_SCHEMA = "wasg2";
   private String id;
   public String schema = DEFAULT_SCHEMA;
+  public IsolationLevel isolation;
   public String checkok;
   @XStreamImplicit
   public List<Check> checks = new ArrayList<Check>();
@@ -67,6 +68,14 @@ public class Alter
   public void setSchema(String schema)
   {
     this.schema = schema;
+  }
+  public IsolationLevel getIsolation()
+  {
+    return isolation;
+  }
+  public void setIsolation( IsolationLevel isolation )
+  {
+    this.isolation = isolation;
   }
   public void setStatements(List<AlterStatement> statements)
   {

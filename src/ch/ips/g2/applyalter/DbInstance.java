@@ -2,7 +2,6 @@ package ch.ips.g2.applyalter;
 import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.SQLException;
-import java.sql.PreparedStatement;
 
 import com.thoughtworks.xstream.annotations.XStreamAlias;
 import com.thoughtworks.xstream.annotations.XStreamOmitField;
@@ -17,7 +16,7 @@ import com.thoughtworks.xstream.annotations.XStreamOmitField;
 public class DbInstance
 {
   private static final String DB_DRIVER = "com.ibm.db2.jcc.DB2Driver";
-  
+
   public String id;
   public String type;
   public String host;
@@ -28,7 +27,7 @@ public class DbInstance
   private Connection con;
   @XStreamOmitField
   private boolean used;
-  
+
   static {
     try {
       Class.forName(DB_DRIVER);
@@ -36,7 +35,7 @@ public class DbInstance
       throw new ApplyAlterException("Can not initialize db driver " + DB_DRIVER, e);
     }
   }
-  
+
   public DbInstance() {
     super();
   }
@@ -50,7 +49,7 @@ public class DbInstance
     this.user = user;
     this.pass = pass;
   }
-  
+
   /**
    * Get url for connecting <code>jdbc:db2://...</code>
    * @return url for connectiong
@@ -59,7 +58,7 @@ public class DbInstance
   {
     return String.format("jdbc:db2://%s:%s/%s", host, port, db);
   }
-  
+
   /**
    * Change database schema on this databse instance
    * @param schema schema name to set
@@ -69,23 +68,42 @@ public class DbInstance
     //important: DB2 requires uppercase schema!
     schema = schema.toUpperCase();
 
-    PreparedStatement ps = null;
     try {
       con.setCatalog(schema);
 
-      ps = con.prepareStatement( "set schema ?" );
-      ps.setString( 1, schema );
-      ps.executeUpdate();
+      DbUtils.executeUpdate( con, "set schema ?", schema );
 
     } catch (SQLException e) {
       throw new ApplyAlterException("Can not set schema " + schema, e);
-    } finally {
-      DbUtils.close( ps );
     }
   }
-  
+
   /**
-   * Get a current connection to this database instance with auto commit turned off  
+   * Set transaction isolation level.
+   * Connection must be open.
+   *
+   * @param isolation isolation level; null = do not change
+   * @throws ApplyAlterException error setting
+   */
+  public void setIsolation( IsolationLevel isolation )
+      throws ApplyAlterException
+  {
+    if (isolation==null)
+        return;
+
+    try
+    {
+      con.setTransactionIsolation( isolation.getJdbcValue() );
+    }
+    catch (SQLException e)
+    {
+      throw new ApplyAlterException( "Cannot set isolation level to %s (%d)", e,
+          isolation, isolation.getJdbcValue() );
+    }
+  }
+
+  /**
+   * Get a current connection to this database instance with auto commit turned off
    * @return connection to this database instance
    * @throws ApplyAlterException if connection could not be acquired
    */
@@ -101,7 +119,7 @@ public class DbInstance
     }
     return con;
   }
-  
+
   /**
    * Get a current connection to this database instance nad mark it as used
    * @return connection to this database instance
@@ -113,7 +131,7 @@ public class DbInstance
     used = true;
     return c;
   }
-  
+
   /**
    * Close connection
    */
@@ -121,10 +139,12 @@ public class DbInstance
     if (con != null) {
       try {
         con.close();
-      } catch (SQLException e) {}
+      } catch (SQLException e) {
+        //ignore
+      }
     }
   }
-  
+
   public String getId()
   {
     return id;
@@ -185,5 +205,5 @@ public class DbInstance
   {
     this.pass = pass;
   }
-  
+
 }

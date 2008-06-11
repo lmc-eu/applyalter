@@ -7,9 +7,6 @@ import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
-import java.util.regex.PatternSyntaxException;
 
 /**
  * Special migration for data that cannot fit into one transaction. This variant use ID range steps:
@@ -36,8 +33,11 @@ public class MigrationIdRange extends AbstractMigration
   private String fromidexpr;
   private Long toid;
   private String toidexpr;
-  private Long step;
-  private String placeholder = DEFAULT_PLACEHOLDER;
+
+  protected String getDefaultPlaceholder()
+  {
+    return DEFAULT_PLACEHOLDER;
+  }
 
   //-----------------------------------------------------------------------------------------------------------------
   public Long getFromid()
@@ -78,26 +78,6 @@ public class MigrationIdRange extends AbstractMigration
   public void setToidexpr( String toidexpr )
   {
     this.toidexpr = toidexpr;
-  }
-
-  public Long getStep()
-  {
-    return step;
-  }
-
-  public void setStep( Long step )
-  {
-    this.step = step;
-  }
-
-  public String getPlaceholder()
-  {
-    return placeholder;
-  }
-
-  public void setPlaceholder( String placeholder )
-  {
-    this.placeholder = placeholder;
   }
 
   //-----------------------------------------------------------------------------------------------------------------
@@ -147,52 +127,6 @@ public class MigrationIdRange extends AbstractMigration
     }
   }
 
-  //-----------------------------------------------------------------------------------------------------------------
-  //-----------------------------------------------------------------------------------------------------------------
-
-  private static class ProcessedQuery
-  {
-    final String statement;
-    final int numPairs;
-
-    private ProcessedQuery( String statement, int numPairs )
-    {
-      this.statement = statement;
-      this.numPairs = numPairs;
-    }
-  }
-
-  /**
-   * Propeare SQL query: replace all occurences of {@link #getPlaceholder()} by
-   *
-   * @return processed query
-   */
-  protected ProcessedQuery getProcessedQuery()
-  {
-    final String rawStatement = getStatement();
-    final String placeholder = getPlaceholder() == null ? DEFAULT_PLACEHOLDER : getPlaceholder();
-
-    try
-    {
-      Pattern pattern = Pattern.compile( placeholder );
-
-      Matcher matcher = pattern.matcher( rawStatement );
-      StringBuffer sb = new StringBuffer();
-      int counter = 0;
-      while ( matcher.find() )
-      {
-        matcher.appendReplacement( sb, REPLACEMENT );
-        counter++;
-      }
-      matcher.appendTail( sb );
-      return new ProcessedQuery( sb.toString(), counter );
-    }
-    catch (PatternSyntaxException e)
-    {
-      throw new ApplyAlterException( "invalid placeholder, not a valid regex: %s", placeholder );
-    }
-  }
-
 
   public void execute( DbInstance dbConn, RunContext ctx )
       throws ApplyAlterException
@@ -206,8 +140,8 @@ public class MigrationIdRange extends AbstractMigration
       Long lower = fetchRangeValue( ctx, connection, getFromid(), getFromidexpr() );
       Long upper = fetchRangeValue( ctx, connection, getToid(), getToidexpr() );
 
-      ProcessedQuery query = getProcessedQuery();
-      if ( query.numPairs < 1 )
+      ProcessedQuery query = processQuery( getStatement(), REPLACEMENT );
+      if ( query.replacements < 1 )
       {
         //this means that the query is just plain one!
         throw new ApplyAlterException( "invalid query (missing %s placeholder): %s", getPlaceholder(), getStatement() );
@@ -228,7 +162,7 @@ public class MigrationIdRange extends AbstractMigration
 
         //full the query
         int stIdx = 1;
-        for ( int i = 0; i < query.numPairs; i++ )
+        for ( int i = 0; i < query.replacements; i++ )
         {
           st.setLong( stIdx++, currentL );
           st.setLong( stIdx++, currentH );
@@ -262,13 +196,13 @@ public class MigrationIdRange extends AbstractMigration
   {
     StringBuilder b = new StringBuilder();
     b.append( this.getClass().getSimpleName() ).append( ": " );
-    b.append( "statement:" ).append( " " ).append( statement ).append( "\n" );
     b.append( "logid: " ).append( logid ).append( "\n" );
+    b.append( "statement:" ).append( " " ).append( statement ).append( "\n" );
     b.append( "maxblkcnt: " ).append( maxblkcnt ).append( "\n" );
-    b.append( "description: " ).append( description ).append( "\n" );
     b.append( "fromid: " ).append( fromid ).append( '/' ).append( toidexpr ).append( "\n" );
     b.append( "toid: " ).append( toid ).append( '/' ).append( toidexpr ).append( "\n" );
     b.append( "step: " ).append( step ).append( "\n" );
+    b.append( "description: " ).append( description ).append( "\n" );
     return b.toString();
   }
 }

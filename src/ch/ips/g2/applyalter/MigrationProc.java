@@ -14,6 +14,8 @@ import com.thoughtworks.xstream.annotations.XStreamAlias;
  *
  * @author Martin Caslavsky &lt;martin.caslavsky@ips-ag.cz&gt;
  * @version $Id$
+ * @deprecated use {@link ch.ips.g2.applyalter.MigrationIdRange} or {@link ch.ips.g2.applyalter.MigrationIdList}
+ * instead
  */
 @XStreamAlias("migration")
 public class MigrationProc extends AbstractMigration
@@ -22,7 +24,6 @@ public class MigrationProc extends AbstractMigration
   private String fromidexpr;
   private Long toid;
   private String toidexpr;
-  private Long step;
 
   public MigrationProc() {
     super();
@@ -48,11 +49,17 @@ public class MigrationProc extends AbstractMigration
     this.step = step;
   }
 
+  protected String getDefaultPlaceholder()
+  {
+    return MigrationIdRange.DEFAULT_PLACEHOLDER;
+  }
+
+
   //-----------------------------------------------------------------------------------------------------------------
   /**
    * Helper method to resolve pairs {@link #toid}+{@link #toidexpr}, {@link #fromid}+{@link #fromidexpr}.
-   * If the direct value is available, it is returned; otherwise, expression is evaliated via
-   * {@link #evaluateIdExpression(java.sql.Connection, String)}.
+   * If the direct value is available, it is returned; otherwise, expression is evaluated via
+   * {@link #evaluateIdExpression(java.sql.Connection, RunContext, String)}.
    *
    * @param con connection database connection
    * @param value direct value ({@link #fromid}, {@link #toid})
@@ -200,16 +207,6 @@ public class MigrationProc extends AbstractMigration
   public void setToidexpr(String toidexpr)
   {
     this.toidexpr = toidexpr;
-  }
-
-  public Long getStep()
-  {
-    return step;
-  }
-
-  public void setStep(Long step)
-  {
-    this.step = step;
   }
 
   @Override

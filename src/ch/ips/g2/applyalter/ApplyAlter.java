@@ -100,6 +100,7 @@ public class ApplyAlter
         Comment.class,
         MigrationProc.class,
         MigrationIdRange.class,
+        MigrationIdList.class,
         DbInstance.class
     } );
     xstream.alias("db", List.class);
@@ -324,6 +325,7 @@ public class ApplyAlter
               Connection c = d.getConnection();
               runContext.report( DETAIL, "Database instance %s %s, schema %s", dbid, d.getUrl(), a.getSchema() );
               d.setSchema( a.getSchema() );
+              d.setIsolation( a.getIsolation() );
 
               // do checks
               if ( executeChecks( a, c ) )
