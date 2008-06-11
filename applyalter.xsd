@@ -40,18 +40,36 @@
   <xs:element name="migration">
     <xs:complexType>
       <xs:all>
-        <xs:element name="logid" type="xs:string" />
+        <xs:element name="logid" type="logid" />
         <xs:element name="maxblkcnt" type="xs:int" />
-        <xs:element name="description" type="xs:string" />
+        <xs:element name="description" type="description" />
         <xs:element name="fromid" type="xs:int" minOccurs="0" />
         <xs:element name="toid" type="xs:int" minOccurs="0" />
         <xs:element name="toidexpr" type="xs:string" minOccurs="0" />
         <xs:element name="step" type="xs:int" minOccurs="0" />
         <xs:element ref="canfail" minOccurs="0" maxOccurs="1" />
-        <xs:element name="statement" type="xs:string" minOccurs="1" maxOccurs="1" />
+        <xs:element name="statement" type="mstatement" minOccurs="1" maxOccurs="1" />
       </xs:all>
     </xs:complexType>
   </xs:element>
+
+  <xs:simpleType name="logid">
+    <xs:restriction base="xs:string">
+      <xs:maxLength value="10" />
+    </xs:restriction>
+  </xs:simpleType>
+
+  <xs:simpleType name="description">
+    <xs:restriction base="xs:string">
+      <xs:maxLength value="100" />
+    </xs:restriction>
+  </xs:simpleType>
+
+  <xs:simpleType name="mstatement">
+    <xs:restriction base="xs:string">
+      <xs:maxLength value="4000" />
+    </xs:restriction>
+  </xs:simpleType>
 
   <xs:complexType name="abstractstatement">
     <xs:sequence>
