@@ -9,15 +9,15 @@ public enum RunMode {
   /**
    * Execute statements and commit them
    */
-  sharp, 
+  SHARP,
   /**
    * Execute statements but dont commit them
    */
-  dry, 
+  DRY,
   /**
    * Just print statements
    */
-  print;
+  PRINT;
   
   /**
    * Get new instance of RunMode from system property

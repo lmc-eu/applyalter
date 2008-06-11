@@ -2,6 +2,7 @@ package ch.ips.g2.applyalter;
 import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.SQLException;
+import java.sql.PreparedStatement;
 
 import com.thoughtworks.xstream.annotations.XStreamAlias;
 import com.thoughtworks.xstream.annotations.XStreamOmitField;
@@ -65,10 +66,21 @@ public class DbInstance
    * @throws ApplyAlterException if schema can not be set
    */
   public void setSchema(String schema) throws ApplyAlterException {
+    //important: DB2 requires uppercase schema!
+    schema = schema.toUpperCase();
+
+    PreparedStatement ps = null;
     try {
       con.setCatalog(schema);
+
+      ps = con.prepareStatement( "set schema ?" );
+      ps.setString( 1, schema );
+      ps.executeUpdate();
+
     } catch (SQLException e) {
       throw new ApplyAlterException("Can not set schema " + schema, e);
+    } finally {
+      DbUtils.close( ps );
     }
   }
   
@@ -96,7 +108,7 @@ public class DbInstance
    * @throws ApplyAlterException if connection could not be acquired
    * @see #getConnection()
    */
-  public Connection useConnection() throws ApplyAlterException {
+  public Connection markConnectionUsed() throws ApplyAlterException {
     Connection c = getConnection();
     used = true;
     return c;

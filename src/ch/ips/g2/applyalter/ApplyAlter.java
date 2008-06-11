@@ -26,6 +26,9 @@ import org.apache.commons.cli.UnrecognizedOptionException;
 
 import com.thoughtworks.xstream.XStream;
 import com.thoughtworks.xstream.XStreamException;
+import static ch.ips.g2.applyalter.ReportLevel.MAIN;
+import static ch.ips.g2.applyalter.ReportLevel.ALTER;
+import static ch.ips.g2.applyalter.ReportLevel.DETAIL;
 
 
 /**
@@ -71,24 +74,34 @@ public class ApplyAlter
   /**
    * run mode
    */
-  protected RunMode runmode;
+  protected RunContext runContext;
   
   protected XStream xstream = new XStream();
   protected String username;
-  
+
+
+  protected RunMode getRunMode()
+  {
+    return runContext.getRunMode();
+  }
+
   /**
    * Create instance
    * @param dbconfigfile XML serialized {@link DbConfig} (database configuration)
    */
   @SuppressWarnings("unchecked")
-  public ApplyAlter(String dbconfigfile, RunMode runmode, boolean ignorefailures, String username) {
-    this.runmode = runmode;
+  public ApplyAlter(String dbconfigfile, RunContext runContext, boolean ignorefailures, String username) {
+    this.runContext = runContext;
     this.username = username;
-    xstream.processAnnotations(Alter.class);
-    xstream.processAnnotations(SQL.class);
-    xstream.processAnnotations(Comment.class);
-    xstream.processAnnotations(Migration.class);
-    xstream.processAnnotations(DbInstance.class);
+
+    xstream.processAnnotations( new Class[]{
+        Alter.class,
+        SQL.class,
+        Comment.class,
+        MigrationProc.class,
+        MigrationIdRange.class,
+        DbInstance.class
+    } );
     xstream.alias("db", List.class);
     
     try {
@@ -126,7 +139,7 @@ public class ApplyAlter
 
   /**
    * Create new instance from XML serialized form
-   * @param file identifier for {@link Alter#setId()}
+   * @param file identifier for {@link Alter#setId(String)}
    * @param i input stream to read from
    * @return new instance
    */
@@ -201,37 +214,39 @@ public class ApplyAlter
    * @return true if object exists in database
    * @throws ApplyAlterException
    */
-  protected static boolean check(Connection c, Check a, String schema) throws ApplyAlterException
+  protected boolean check(Connection c, Check a, String schema) throws ApplyAlterException
   {
     a.check();
     PreparedStatement s = null;
+    ResultSet rs = null;
     try {
-      String sql = a.getType().getSQL();
-      System.out.print("Check: " + sql + " (");
+      final String sql = a.getType().getSQL();
+      StringBuilder buf = new StringBuilder();
+      buf.append( "Check: " ).append( sql ).append( " (" );
+
       s = c.prepareStatement(sql);
       int i = 1;
       schema = schema.toUpperCase();
       s.setString(i++, schema);
-      System.out.print(schema + " ");
+      buf.append( schema ).append( ' ' );
       if (a.table != null) {
         String table = a.getTable().toUpperCase();
-        System.out.print(table + " ");
+        buf.append( table ).append( ' ' );
         s.setString(i++, table);
       }
       String name = a.getName().toUpperCase();
-      System.out.print(name);
+      buf.append(name);
       s.setString(i++, name);
-      System.out.println(")");
-      
-      s.execute();
-      return s.getResultSet().next();
+      buf.append( ")" );
+
+      runContext.report( ReportLevel.STATEMENT_STEP, "%s", buf );
+
+      rs = s.executeQuery();
+      return rs.next();
     } catch (SQLException e) {
       throw new ApplyAlterException("Can not check " + a, e);
     } finally {
-      if (s != null)
-        try {
-          s.close();
-        } catch (SQLException e) {}
+      DbUtils.close( s, rs );
     }
   }
 
@@ -242,15 +257,16 @@ public class ApplyAlter
    * @return true if sql is not null and result of sql statement is equal {@link #CHECK_OK} value
    * @throws ApplyAlterException
    */
-  protected static boolean check(Connection c, String sql) throws ApplyAlterException
+  protected boolean check(Connection c, String sql) throws ApplyAlterException
   {
     if (sql == null || "".equals(sql.trim()))
       return false;
     PreparedStatement s = null;
+    ResultSet rs = null;
     try {
-      System.out.printf("Check: %s\n", sql);
+      runContext.report( ReportLevel.STATEMENT_STEP, "Check: %s", sql);
       s = c.prepareStatement(sql);
-      ResultSet rs = s.executeQuery();
+      rs = s.executeQuery();
       if (!rs.next())
         return false;
       String check = rs.getString(1);
@@ -258,13 +274,10 @@ public class ApplyAlter
     } catch (SQLException e) {
       throw new ApplyAlterException("Can not check " + sql, e);
     } finally {
-      if (s != null)
-        try {
-          s.close();
-        } catch (SQLException e) {}
+      DbUtils.close( s, rs );
     }
   }
-  
+
   /**
    * Check if all database types in alters are defined in database configuration
    * @param alters to check
@@ -281,7 +294,7 @@ public class ApplyAlter
           throw new ApplyAlterException("Unknown database type " + i + " in alter " + a.getId() + ". Possible values: " + types);
     }
   }
-  
+
   /**
    * Apply alter scripts to all or selected database instances
    * @param alters alter scripts to apply
@@ -289,13 +302,17 @@ public class ApplyAlter
    */
   public void apply(Alter... alters) throws ApplyAlterException {
     String dbid = null;
-    String statement = null;
-    PreparedStatement t = null;
     ApplyAlterExceptions aae = new ApplyAlterExceptions(db.isIgnorefailures());
     try {
-      checkDbIds(alters);
+      //initialize databases
+      runContext.report( ALTER, "Executing %d alterscripts on %d database instances",
+          alters.length, db.getEntries().size() );
+
+      checkDbIds( alters );
+
       // for all alter scripts
       for (Alter a: alters) {
+        runContext.report( ALTER, "alterscript: %s", a.getId() );
         // for all (or selected) databases
         DbLoop:
         for (DbInstance d: db.getEntries()) {
@@ -305,57 +322,52 @@ public class ApplyAlter
             dbid = d.getId();
             try {
               Connection c = d.getConnection();
-              System.out.printf("Database instance %s %s, schema %s\n", dbid, d.getUrl(), a.getSchema());
-              d.setSchema(a.getSchema());
-  
+              runContext.report( DETAIL, "Database instance %s %s, schema %s", dbid, d.getUrl(), a.getSchema() );
+              d.setSchema( a.getSchema() );
+
               // do checks
-              if (check(c, a.getCheckok())) {
-                System.out.println("Alter applied already, skipping");
-                continue DbLoop;
+              if ( executeChecks( a, c ) )
+              {
+                //alter already applied
+                runContext.report( ALTER, "Alter already applied, skipping" );
+                continue;
               }
-              for (Check i: a.getChecks())
-                if (check(c, i, a.getSchema())) {
-                  System.out.println("Alter applied already, skipping");
-                  continue DbLoop;
-                }
-              
-              d.useConnection();
+
+              d.markConnectionUsed();
               // for all alter statements
               for (AlterStatement s: a.getStatements()) {
-                System.out.println(s);
-                String stm = s.getSQLStatement();
-                t = null;
-                statement = s.toString();
-                if (stm == null || RunMode.print.equals(runmode))
+                //print to user
+                runContext.report( ReportLevel.STATEMENT, "%s", s );
+                if (RunMode.PRINT.equals(getRunMode()))
                   continue;
-                t = s.getPreparedStatement(c);
-                try {
-                  t.execute();
-                } catch (SQLException e) {
-                  if (s.canFail())
-                    System.out.println("  " + e.getMessage() + "\n  but continuing as this is allowed to fail");
+
+                try
+                {
+                  s.execute( d, runContext );
+                }
+                catch (ApplyAlterException e)
+                {
+                  if ( s.canFail() )
+                  {
+                    runContext.report( ReportLevel.ERROR, "statement failed, ignoring: %s", e.getMessage() );
+                  }
                   else
                     throw e;
                 }
               }
               long time = System.currentTimeMillis()-start;
               savelog(c, dbid, a.getId(), time);
-              
-            } catch (SQLException e) {
-              aae.addOrThrow(new ApplyAlterException("Can not execute alter statement on db " + dbid + "\n" + statement, e));
+
             } catch (ApplyAlterException e) {
               aae.addOrThrow(e);
-            } finally {
-              if (t != null)
-                try {
-                  t.close();
-                } catch (SQLException e) {}
             }
           }
         }
         // commit each alter on used databases
-        if (aae.isEmpty() && RunMode.sharp.equals(runmode))
+        if (aae.isEmpty() && RunMode.SHARP.equals(getRunMode()))
+        {
           db.commitUsed();
+        }
       }
     
     } finally {
@@ -364,23 +376,56 @@ public class ApplyAlter
     if (!aae.isEmpty()) throw aae;
   }
 
+  protected boolean executeChecks( Alter alter, Connection connection )
+  {
+    if ( check( connection, alter.getCheckok() ) )
+    {
+      //checkOK is sufficient
+      return true;
+    }
+    //all other checks must be OK to decide that alter has been already applied
+    for ( Check i : alter.getChecks() )
+      if ( !check( connection, i, alter.getSchema() ) )
+      {
+        return false;
+      }
+    return true;
+  }
+
   /**
    * Logs succesful alter to stdout and applyalter_log table
    * @param c connection
    * @param dbid database id
    * @param id alter id
    * @param time alter duration
-   * @throws SQLException if insertion fails
    */
-  protected void savelog(Connection c, String dbid, String id, long time) throws SQLException
+  protected void savelog(Connection c, String dbid, String id, long time)
   {
-    System.out.printf("Alter %s on %s took %s ms\n", id, dbid, time);    
-    PreparedStatement s = c.prepareStatement("insert into wasg2.applyalter_log (username,id,duration) values (?,?,?)");
-    int i = 1;
-    s.setString(i++, username);
-    s.setString(i++, id);
-    s.setLong(i++, time);
-    s.executeUpdate();
+    runContext.report( ALTER, "Alter %s on %s took %s ms", id, dbid, time);
+
+    if ( runContext.getRunMode() != RunMode.SHARP )
+    {
+      //do not write to database
+      return;
+    }
+
+    PreparedStatement s = null;
+    try
+    {
+      s = c.prepareStatement("insert into wasg2.applyalter_log (username,id,duration) values (?,?,?)");
+      s.setString(1, username);
+      s.setString(2, id);
+      s.setLong(3, time);
+      s.executeUpdate();
+    }
+    catch (SQLException e)
+    {
+      runContext.report( ReportLevel.ERROR, "failed to insert applyalter_log record: %s", e.getMessage() );
+    }
+    finally
+    {
+      DbUtils.close( s );
+    }
   }
 
   public static void main(String[] args)
@@ -390,10 +435,10 @@ public class ApplyAlter
     o.addOption(PRINTSTACKTRACE, false, "print stacktrace");
     o.addOption(RUN_MODE, true, "runmode");
     o.addOption(USER_NAME, true, "user name");
-    
+
     boolean ignfail = false;
     boolean printstacktrace = false;
-    RunMode rnmd = RunMode.sharp;
+    RunMode rnmd = RunMode.SHARP;
     
     try {
       CommandLineParser parser = new BasicParser();
@@ -404,7 +449,7 @@ public class ApplyAlter
         username = System.getProperty("user.name");
       if (username == null || "".equals(username.trim()))
         throw new UnrecognizedOptionException("User name can not be determined, use parameter -" + USER_NAME);
-      
+
       rnmd = RunMode.getRunMode(cmd.getOptionValue(RUN_MODE), rnmd);
       ignfail = Boolean.valueOf(cmd.hasOption(IGNORE_FAILURES));
       printstacktrace = Boolean.valueOf(cmd.hasOption(PRINTSTACKTRACE));
@@ -412,18 +457,22 @@ public class ApplyAlter
       String[] a = cmd.getArgs();
       if (a.length < 1)
         throw new UnrecognizedOptionException("Not enough parameters (dbconfig.xml alterscripts...)");
-
+      
       // prepare arguments
       String[] param = new String[a.length-1];
       System.arraycopy(a, 1, param, 0, a.length-1);
       
+      PrintWriterRunContext rctx = PrintWriterRunContext.createStdInstance();
+      rctx.setRunMode( rnmd );
+
       // go
-      System.out.println("ApplyAlter started");
-      System.out.printf("run mode: %s\n", rnmd);
-      System.out.printf("ignore failures: %s\n", ignfail);
-      System.out.printf("print stacktrace: %s\n", printstacktrace);
-      new ApplyAlter(a[0], rnmd, ignfail, username)
-        .apply(param);
+      rctx.report( MAIN, "ApplyAlter started" );
+      rctx.report( MAIN, "run mode: %s", rnmd );
+      rctx.report( MAIN, "ignore failures: %s", ignfail );
+      rctx.report( MAIN, "print stacktrace: %s", printstacktrace );
+
+      ApplyAlter applyAlter = new ApplyAlter( a[0], rctx, ignfail, username );
+      applyAlter.apply(param);
       
     } catch (UnrecognizedOptionException e) {
       System.out.println(e.getMessage());

@@ -41,13 +41,15 @@ public class DbConfig
    */
   public void closeConnections() {
     for (DbInstance i: d)
+    {
       i.closeConnection();
+    }
   }
 
   /**
    * Commit used connections
    * @param ignorefailures 
-   * @see DbInstance#useConnection() 
+   * @see DbInstance#markConnectionUsed()
    * @see DbInstance#isUsed() 
    * @throws ApplyAlterException if one or some of connection can not be commited
    */

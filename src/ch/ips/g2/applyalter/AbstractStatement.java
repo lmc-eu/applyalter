@@ -1,9 +1,5 @@
 package ch.ips.g2.applyalter;
 
-import java.sql.Connection;
-import java.sql.PreparedStatement;
-import java.sql.SQLException;
-
 public abstract class AbstractStatement implements AlterStatement
 {
   public String statement;
@@ -11,11 +7,6 @@ public abstract class AbstractStatement implements AlterStatement
   public boolean canfail;
 
   public String getStatement()
-  {
-    return statement;
-  }
-
-  public String getSQLStatement()
   {
     return statement;
   }
@@ -30,16 +21,12 @@ public abstract class AbstractStatement implements AlterStatement
     this.canfail = canfail;
   }
 
-  public PreparedStatement getPreparedStatement(Connection con) throws SQLException
-  {
-    String sql = getSQLStatement();
-    return sql == null ? null : con.prepareStatement(sql);
-  }
-
   public void setStatement(String statement)
   {
     this.statement = statement;
   }
+
+/* Implementing hashCode+equals is not neccesary and probably incorrect
 
   @Override
   public int hashCode()
@@ -57,7 +44,8 @@ public abstract class AbstractStatement implements AlterStatement
       return true;
     if( obj == null)
       return false;
-    if( !(obj instanceof AbstractStatement))
+    //both objects must be the same class!
+    if ( getClass() != obj.getClass() )
       return false;
     final AbstractStatement other = (AbstractStatement) obj;
     if( statement == null) {
@@ -67,6 +55,7 @@ public abstract class AbstractStatement implements AlterStatement
       return false;
     return true;
   }
+*/
 
   @Override
   public String toString()
