@@ -6,7 +6,7 @@
   <sql>
     <statement>
       create table applyalter_log (at timestamp default current timestamp, username varchar(40), id
-      varchar(40), duration bigint)
+      varchar(80), duration bigint)
     </statement>
   </sql>
 </alter>
