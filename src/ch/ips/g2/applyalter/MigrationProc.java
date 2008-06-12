@@ -129,7 +129,7 @@ public class MigrationProc extends AbstractMigration
   }
 
   public void execute( DbInstance dbConn, RunContext mode )
-      throws ApplyAlterException
+      throws ApplyAlterException, SQLException
   {
     Connection connection = dbConn.getConnection();
 
@@ -138,11 +138,6 @@ public class MigrationProc extends AbstractMigration
     {
       st = makePreparedStatement( connection, mode );
       st.execute( );
-    }
-    catch (SQLException e)
-    {
-      //just rethrow
-      throw new ApplyAlterException( e.getMessage(), e );
     }
     finally
     {

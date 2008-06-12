@@ -49,6 +49,27 @@
 		</copy>
 	</target>
 
+	<target name="bigjar" depends="compile">
+        <property name="temp" value="${target}/temp-jar" />
+        <mkdir dir="${temp}"/>
+        <mkdir dir="${temp}/META-INF"/>
+        <unzip dest="${temp}">
+            <fileset refid="libs" />
+            <fileset refid="extlibs" />
+            <fileset refid="db2libs" />
+        </unzip>
+        <copy todir="${temp}">
+            <fileset dir="${classes}"/>
+        </copy>
+        <jar file="${target}/applyalter.jar">
+            <fileset dir="${temp}"/>
+            <manifest>
+                <attribute name="Main-Class" value="ch.ips.g2.applyalter.ApplyAlter"/>
+                <attribute name="Implementation-Vendor" value="IPS-AG"/>
+            </manifest>
+        </jar>
+    </target>
+
 	<target name="dist" depends="jar">
 		<jar destfile="${target}/${ant.project.name}.jar" basedir="${classes}" />
 		<zip destfile="${target}/${ant.project.name}.zip">

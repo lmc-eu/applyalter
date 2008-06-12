@@ -38,10 +38,10 @@ public class SQL extends AbstractStatement
   }
 
   public void execute( DbInstance dbConn, RunContext ctx )
-      throws ApplyAlterException
+      throws ApplyAlterException, SQLException
   {
     Connection connection = dbConn.getConnection();
-    String sql = getSqlStatement();
+    String sql = getSqlStatement().trim();
 
     PreparedStatement st = null;
     try
@@ -49,11 +49,6 @@ public class SQL extends AbstractStatement
       st = connection.prepareStatement( sql );
       int rows = st.executeUpdate();
       ctx.report( ReportLevel.STATEMENT_STEP, "statement executed, changed rows: %d%n", rows );
-    }
-    catch (SQLException e)
-    {
-      //just rethrow
-      throw new ApplyAlterException( e.getMessage(), e );
     }
     finally
     {

@@ -1,5 +1,8 @@
 package ch.ips.g2.applyalter;
 
+import java.sql.SQLException;
+import java.util.Set;
+
 
 /**
  * Single Alter statement.
@@ -36,10 +39,22 @@ public interface AlterStatement
    *
    * @param dbConn database connection (ready)
    * @param ctx run context: contains run mode, provides reporting
+   * @throws SQLException sql error, provides SQLSTATE and SQLCODE
    * @throws ApplyAlterException preprocessed exception
    */
   public void execute( DbInstance dbConn, RunContext ctx )
-      throws ApplyAlterException;
+      throws SQLException, ApplyAlterException;
 
 
+  /**
+   * SQL states that can be safely ignored.
+   * @return set of ignored codes, might be null!
+   */
+  Set<String> getIgnoredSqlStates();
+
+  /**
+   * SQL codes that can be safely ignored.
+   * @return set of ignored codes, might be null!
+   */
+  Set<Integer> getIgnoredSqlCodes();
 }

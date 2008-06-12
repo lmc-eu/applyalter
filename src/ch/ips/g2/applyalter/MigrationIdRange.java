@@ -129,7 +129,7 @@ public class MigrationIdRange extends AbstractMigration
 
 
   public void execute( DbInstance dbConn, RunContext ctx )
-      throws ApplyAlterException
+      throws ApplyAlterException, SQLException
   {
     Connection connection = dbConn.getConnection();
 
@@ -177,11 +177,6 @@ public class MigrationIdRange extends AbstractMigration
       }
 
       ctx.report( STATEMENT_STEP, " migration finished, total %d rows changed", totalChangedRows );
-    }
-    catch (SQLException e)
-    {
-      //just rethrow
-      throw new ApplyAlterException( e.getMessage(), e );
     }
     finally
     {

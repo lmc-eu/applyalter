@@ -343,19 +343,7 @@ public class ApplyAlter
                 if (RunMode.PRINT.equals(getRunMode()))
                   continue;
 
-                try
-                {
-                  s.execute( d, runContext );
-                }
-                catch (ApplyAlterException e)
-                {
-                  if ( s.canFail() )
-                  {
-                    runContext.report( ReportLevel.ERROR, "statement failed, ignoring: %s", e.getMessage() );
-                  }
-                  else
-                    throw e;
-                }
+                executeStatement( d, s );
               }
               long time = System.currentTimeMillis()-start;
               savelog(c, dbid, a.getId(), time);
@@ -376,6 +364,50 @@ public class ApplyAlter
       db.closeConnections();
     }
     if (!aae.isEmpty()) throw aae;
+  }
+
+  /**
+   * Execute statement and handle errors (ignoge if configured so).
+   *
+   * @param db database instance
+   * @param s statement
+   * @throws ApplyAlterException statement failed and the error is not configured to be ignored
+   */
+  private void executeStatement( DbInstance db, AlterStatement s )
+      throws ApplyAlterException
+  {
+    try
+    {
+      s.execute( db, runContext );
+    }
+    catch (ApplyAlterException e)
+    {
+      if ( s.canFail() )
+      {
+        runContext.report( ReportLevel.ERROR, "statement failed, ignoring: %s", e.getMessage() );
+      }
+      else
+        throw e;
+    }
+    catch (SQLException e)
+    {
+      if ( s.canFail() )
+      {
+        runContext.report( ReportLevel.ERROR, "statement failed, ignoring: %s", e.getMessage() );
+      }
+      else if ( s.getIgnoredSqlStates() != null && s.getIgnoredSqlStates().contains( e.getSQLState() ) )
+      {
+        runContext.report( ReportLevel.ERROR, "statement failed with SQLSTATE=%s, ignoring: %s",
+            e.getSQLState(), e.getMessage() );
+      }
+      else if ( s.getIgnoredSqlCodes() != null && s.getIgnoredSqlCodes().contains( e.getErrorCode() ) )
+      {
+        runContext.report( ReportLevel.ERROR, "statement failed with SQLSTATE=%s, ignoring: %s",
+            e.getSQLState(), e.getMessage() );
+      }
+      else
+        throw new ApplyAlterException( e.getMessage(), e );
+    }
   }
 
   protected boolean executeChecks( Alter alter, Connection connection )
@@ -443,7 +475,7 @@ public class ApplyAlter
     Options o = new Options();
     o.addOption(IGNORE_FAILURES, false, "ignore failures");
     o.addOption(PRINTSTACKTRACE, false, "print stacktrace");
-    o.addOption(RUN_MODE, true, "runmode");
+    o.addOption(RUN_MODE, true, "runmode, possible values: "+ Arrays.toString( RunMode.values() ) );
     o.addOption(USER_NAME, true, "user name");
 
     boolean ignfail = false;

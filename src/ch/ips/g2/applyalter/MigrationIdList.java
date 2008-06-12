@@ -136,7 +136,7 @@ public class MigrationIdList extends AbstractMigration
       final Connection connection = dbConn.getConnection();
 
       //step 1: create temporary table with the columns of query
-      String sql = String.format( SQL_CREATE_TEMPORARY_TABLE, tableName, getIdquery() );
+      String sql = String.format( SQL_CREATE_TEMPORARY_TABLE, tableName, getIdquery().trim() );
       ctx.report( DETAIL, "creating temporary table by query: %s", sql );
       DbUtils.executeUpdate( connection, sql );
 
@@ -156,7 +156,7 @@ public class MigrationIdList extends AbstractMigration
   //-----------------------------------------------------------------------------------------------------------------
 
   public void execute( DbInstance dbConn, RunContext ctx )
-      throws ApplyAlterException
+      throws ApplyAlterException, SQLException
   {
     checkParameters();
 
@@ -240,11 +240,6 @@ public class MigrationIdList extends AbstractMigration
           updatedCount, batchCount, processedCount
       );
 
-    }
-    catch (Exception e)
-    {
-      //just rethrow
-      throw new ApplyAlterException( e.getMessage(), e );
     }
     finally
     {
