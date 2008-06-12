@@ -39,12 +39,8 @@ public enum RunMode {
   public static RunMode getRunMode(String p, RunMode def)
   {
     RunMode result = def;
-    try {
-      if (p != null)
-        result = RunMode.valueOf(p);
-    } catch (RuntimeException e) {
-      // return default
-    }
+    if ( p != null )
+      result = RunMode.valueOf( p.toUpperCase() );
     return result;
   }
   

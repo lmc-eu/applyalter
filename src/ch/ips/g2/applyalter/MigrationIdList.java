@@ -160,10 +160,15 @@ public class MigrationIdList extends AbstractMigration
   {
     checkParameters();
 
+    //ensure that everything is commited before migration
+    final Connection connection = dbConn.getConnection();
+    commitStep( ctx, connection );
+
     //create temporary table, empty
     final String tableMain = createTempTable( dbConn, ctx, TEMP_TABLE_MAIN );
     final String tableBatch = createTempTable( dbConn, ctx, TEMP_TABLE_BATCH );
-    final Long step = getStep();
+    //always commit temporary tables
+    connection.commit();
 
     //prepare main query right now, for the case the alterscript is invalid
     ProcessedQuery mainQuery = processQuery( getStatement(),
@@ -175,7 +180,6 @@ public class MigrationIdList extends AbstractMigration
     }
 
 
-    final Connection connection = dbConn.getConnection();
     //fill the table
     int totalIdCount = fillIdList( ctx, connection, tableMain );
 
@@ -190,7 +194,7 @@ public class MigrationIdList extends AbstractMigration
     {
       //prepare statements for batches
       String sqlCopyBatch = String.format( "insert into %2$s (select * from %1$s fetch first %3$d rows only)",
-          tableMain, tableBatch, step );
+          tableMain, tableBatch, getStep() );
       String sqlDeleteBatch = String.format( "delete from %1$s where (%3$s) in (select %3$s from %2$s)",
           tableMain, tableBatch, getIdcolumn() );
 
@@ -230,7 +234,7 @@ public class MigrationIdList extends AbstractMigration
         stCleanBatchTable.executeUpdate();
 
         //the most important thing: commit
-        connection.commit();
+        commitStep( ctx, connection );
 
         //ctx.report( DETAIL, "   batch cleaned up, going to next one" );
       }

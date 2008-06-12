@@ -3,6 +3,8 @@ package ch.ips.g2.applyalter;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.regex.PatternSyntaxException;
+import java.sql.Connection;
+import java.sql.SQLException;
 
 /**
  * @author Kamil Podlesak &lt;kamil.podlesak@ips-ag.cz&gt;
@@ -74,6 +76,29 @@ public abstract class AbstractMigration extends AbstractStatement
   public void setPlaceholder( String placeholder )
   {
     this.placeholder = placeholder;
+  }
+
+  //-----------------------------------------------------------------------------------------------------------------
+  //-----------------------------------------------------------------------------------------------------------------
+
+  /**
+   * Utility method: commit step if the mode is {@link RunMode#SHARP}, rollback in other modes.
+   * @param ctx context, used to provide run mode
+   * @param connection database connection to commit/rollback
+   * @throws SQLException error commiting/rollbacking
+   */
+  protected void commitStep( RunContext ctx, Connection connection )
+      throws SQLException
+  {
+    //the most important thing: commit
+    switch ( ctx.getRunMode() )
+    {
+      case SHARP:
+        connection.commit();
+        break;
+      default:
+        connection.rollback();
+    }
   }
 
   //-----------------------------------------------------------------------------------------------------------------

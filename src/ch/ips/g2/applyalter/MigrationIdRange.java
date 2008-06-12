@@ -171,7 +171,7 @@ public class MigrationIdRange extends AbstractMigration
         final int changedRows = st.executeUpdate();
         ctx.report( ReportLevel.DETAIL, "  step %d-%d finished, %d rows changed", currentL, currentH, changedRows );
         //commit
-        connection.commit();
+        commitStep( ctx, connection );
 
         totalChangedRows += changedRows;
       }
