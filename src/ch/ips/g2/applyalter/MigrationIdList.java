@@ -90,8 +90,8 @@ public class MigrationIdList extends AbstractMigration
 
   //-----------------------------------------------------------------------------------------------------------------
 
-  public static final String TEMP_TABLE_MAIN = "MIGRATION_IDS";
-  public static final String TEMP_TABLE_BATCH = "MIGRATION_BATCH";
+  public static final String TEMP_TABLE_MAIN = "MGR_IDS";
+  public static final String TEMP_TABLE_BATCH = "MIG_BATCH";
 
 
   /**
@@ -139,6 +139,12 @@ public class MigrationIdList extends AbstractMigration
       String sql = String.format( SQL_CREATE_TEMPORARY_TABLE, tableName, getIdquery() );
       ctx.report( DETAIL, "creating temporary table by query: %s", sql );
       DbUtils.executeUpdate( connection, sql );
+
+      //important: create index
+      String indexSql = String.format( "create index %1$s_IDX on %1$s (%2$s)", tableName, getIdcolumn() );
+      ctx.report( DETAIL, "  creating index: %s", indexSql );
+      DbUtils.executeUpdate( connection, indexSql );
+
     }
     catch (SQLException e)
     {
