@@ -360,7 +360,11 @@ public class ApplyAlter
         // commit each alter on used databases
         if (aae.isEmpty() && RunMode.SHARP.equals(getRunMode()))
         {
-          db.commitUsed();
+          db.commitUsed( runContext );
+        }
+        else
+        {
+          db.rollbackUsed( runContext );
         }
       }
     
