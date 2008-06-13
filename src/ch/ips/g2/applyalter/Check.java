@@ -17,6 +17,8 @@ public class Check
   public String name;
   @XStreamAsAttribute
   public String table;
+  @XStreamAsAttribute
+  public boolean inverted;
   
   public Check() {
     super();
@@ -56,6 +58,17 @@ public class Check
   {
     this.table = table;
   }
+
+  public boolean isInverted()
+  {
+    return inverted;
+  }
+
+  public void setInverted( boolean inverted )
+  {
+    this.inverted = inverted;
+  }
+
   public void check() {
     if (name == null || "".equals(name.trim()))
       throw new IllegalStateException("Name have to be filled");

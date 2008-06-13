@@ -243,7 +243,11 @@ public class ApplyAlter
       runContext.report( ReportLevel.STATEMENT_STEP, "%s", buf );
 
       rs = s.executeQuery();
-      return rs.next();
+      boolean rawResult = rs.next();
+
+      //XOR with the "isInverted" flag
+      return rawResult ^ a.isInverted();
+      
     } catch (SQLException e) {
       throw new ApplyAlterException("Can not check " + a, e);
     } finally {

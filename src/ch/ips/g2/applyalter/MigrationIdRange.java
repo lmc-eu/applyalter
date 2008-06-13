@@ -153,11 +153,10 @@ public class MigrationIdRange extends AbstractMigration
       final Long step = getStep();
       ctx.report( STATEMENT_STEP, " with IDs in range %d-%d, step %d", lower, upper, step );
 
-      long maxL = upper - step;
       long totalChangedRows = 0;
-      for ( long currentL = lower; currentL < maxL; currentL += step )
+      for ( long currentL = lower; currentL < upper; currentL += step )
       {
-        final long currentH = currentL + step - 1;
+        final long currentH = Math.min( currentL + step - 1, upper );
         //ctx.report( ReportLevel.DETAIL, "  step: BETWEEN %d AND %d", currentL, currentH );
 
         //full the query
