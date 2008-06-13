@@ -207,6 +207,7 @@ public class MigrationIdList extends AbstractMigration
       stCleanBatchTable = connection.prepareStatement( String.format( "delete from %s", tableBatch ) );
       stMain = connection.prepareStatement( mainQuery.statement );
 
+      final int supposedBatchCount = totalIdCount / getStep().intValue();
       //and process the batches
       int batchCount = 0;
       int updatedCount = 0;
@@ -222,12 +223,13 @@ public class MigrationIdList extends AbstractMigration
         }
         batchCount++;
 
-        ctx.report( DETAIL, "  batch %d: %d rows", batchCount, copied );
+        //ctx.report( DETAIL, "  batch %d: %d rows", batchCount, copied );
         final int updated = stMain.executeUpdate();
         updatedCount += updated;
         processedCount += copied;
 
-        //ctx.report( DETAIL, "  batch %d: %d/%d", batchCount, updated, copied );
+        ctx.report( DETAIL, "  batch %d/%d: %d of %d updated",
+            batchCount, supposedBatchCount, updated, copied );
 
         //and delete batch
         stDeleteBatch.executeUpdate();
