@@ -34,7 +34,11 @@
         <fileset refid="extlibs" />
 			</classpath>
 		</javac>
-	</target>
+        <!-- sourcer and resources -->
+        <copy todir="${classes}">
+            <fileset dir="${src}"/>
+        </copy>
+    </target>
 
 	<target name="clean">
 		<delete dir="${target}">

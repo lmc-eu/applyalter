@@ -67,6 +67,9 @@ public class ApplyAlter
    * Suffix for xml file with serialized Alter
    */
   public static final String XML_SUFFIX = ".xml";
+
+  private static final String[] INTERNAL_SCRIPTS = {"applyalter_log.xml"};
+
   /**
    * Configuration of database instances
    */
@@ -114,6 +117,31 @@ public class ApplyAlter
       throw new ApplyAlterException("Unable to deserialize DbConfig from file " + dbconfigfile, e);
     }
   }
+
+  /**
+   * Apply internal alterscripts.
+   */
+  protected void applyInternal()
+  {
+    final RunContext backupCtx = this.runContext;
+
+    Alter[] internalAlters = new Alter[INTERNAL_SCRIPTS.length];
+    for ( int i = 0; i < INTERNAL_SCRIPTS.length; i++ )
+    {
+      String alterName = INTERNAL_SCRIPTS[i];
+      internalAlters[i] = newAlter( alterName, getClass().getResourceAsStream( alterName ) );
+    }
+    
+    //nothing should be shown to user
+    this.runContext = new InternalRunContext();
+    //run, but don't close the connections!
+    applyWithoutClosing( internalAlters );
+
+    //restore the context
+    this.runContext = backupCtx;
+  }
+
+
   
   /**
    * Apply alter scripts (.xml/.zip) to all or selected database instances
@@ -306,72 +334,96 @@ public class ApplyAlter
    * @throws ApplyAlterException if one of statements can not be executed
    */
   public void apply(Alter... alters) throws ApplyAlterException {
-    String dbid = null;
-    ApplyAlterExceptions aae = new ApplyAlterExceptions(db.isIgnorefailures());
-    try {
-      //initialize databases
-      runContext.report( ALTER, "Executing %d alterscripts on %d database instances",
-          alters.length, db.getEntries().size() );
-
-      checkDbIds( alters );
-
-      // for all alter scripts
-      for (Alter a: alters) {
-        runContext.report( ALTER, "alterscript: %s", a.getId() );
-        // for all (or selected) databases
-        DbLoop:
-        for (DbInstance d: db.getEntries()) {
-          // apply to this instance?
-          if (a.isAllInstances() || a.getInstance().contains(d.getType())) {
-            long start = System.currentTimeMillis();
-            dbid = d.getId();
-            try {
-              Connection c = d.getConnection();
-              runContext.report( DETAIL, "Database instance %s %s, schema %s", dbid, d.getUrl(), a.getSchema() );
-              d.setSchema( a.getSchema() );
-              d.setIsolation( a.getIsolation() );
-
-              // do checks
-              if ( executeChecks( a, c ) )
-              {
-                //alter already applied
-                runContext.report( ALTER, "Alter already applied, skipping" );
-                continue;
-              }
-
-              d.markConnectionUsed();
-              // for all alter statements
-              for (AlterStatement s: a.getStatements()) {
-                //print to user
-                runContext.report( ReportLevel.STATEMENT, "%s", s );
-                if (RunMode.PRINT.equals(getRunMode()))
-                  continue;
-
-                executeStatement( d, s );
-              }
-              long time = System.currentTimeMillis()-start;
-              savelog(c, dbid, a.getId(), time);
-
-            } catch (ApplyAlterException e) {
-              aae.addOrThrow(e);
-            }
-          }
-        }
-        // commit each alter on used databases
-        if (aae.isEmpty() && RunMode.SHARP.equals(getRunMode()))
-        {
-          db.commitUsed( runContext );
-        }
-        else
-        {
-          db.rollbackUsed( runContext );
-        }
-      }
-    
-    } finally {
+    try
+    {
+      applyWithoutClosing( alters );
+    }
+    finally
+    {
       db.closeConnections();
     }
-    if (!aae.isEmpty()) throw aae;
+  }
+
+  /**
+   * Apply alter scripts to all or selected database instances
+   * @param alters alter scripts to apply
+   * @throws ApplyAlterException if one of statements can not be executed
+   */
+  public void applyWithoutClosing( Alter... alters )
+      throws ApplyAlterException
+  {
+    ApplyAlterExceptions aae = new ApplyAlterExceptions( db.isIgnorefailures() );
+    //initialize databases
+    runContext.report( ALTER, "Executing %d alterscripts on %d database instances",
+        alters.length, db.getEntries().size() );
+
+    checkDbIds( alters );
+
+    // for all alter scripts
+    for ( Alter a : alters )
+    {
+      applySingleAlter( a, aae );
+    }
+
+    if ( !aae.isEmpty() ) throw aae;
+  }
+
+  private void applySingleAlter( Alter a, ApplyAlterExceptions aae )
+  {
+    runContext.report( ALTER, "alterscript: %s", a.getId() );
+    // for all (or selected) databases
+    for ( DbInstance d : db.getEntries() )
+    {
+      // apply to this instance?
+      if ( a.isAllInstances() || a.getInstance().contains( d.getType() ) )
+      {
+        long start = System.currentTimeMillis();
+        String dbid = d.getId();
+        try
+        {
+          Connection c = d.getConnection();
+          runContext.report( DETAIL, "Database instance %s %s, schema %s", dbid, d.getUrl(), a.getSchema() );
+          d.setSchema( a.getSchema() );
+          d.setIsolation( a.getIsolation() );
+
+          // do checks
+          if ( executeChecks( a, c ) )
+          {
+            //alter already applied
+            runContext.report( ALTER, "Alter already applied, skipping" );
+            continue;
+          }
+
+          d.markConnectionUsed();
+          // for all alter statements
+          for ( AlterStatement s : a.getStatements() )
+          {
+            //print to user
+            runContext.report( ReportLevel.STATEMENT, "%s", s );
+            if ( RunMode.PRINT.equals( getRunMode() ) )
+              continue;
+
+            executeStatement( d, s );
+          }
+          long time = System.currentTimeMillis() - start;
+          savelog( c, dbid, a.getId(), time );
+
+        }
+        catch (ApplyAlterException e)
+        {
+          aae.addOrThrow( e );
+        }
+      }
+    }
+    // commit each alter on used databases
+    if (aae.isEmpty() && RunMode.SHARP.equals(getRunMode()))
+    {
+      db.commitUsed( runContext );
+    }
+    else
+    {
+      db.rollbackUsed( runContext );
+    }
   }
 
   /**
@@ -522,6 +574,7 @@ public class ApplyAlter
       rctx.report( MAIN, "print stacktrace: %s", printstacktrace );
 
       ApplyAlter applyAlter = new ApplyAlter( a[0], rctx, ignfail, username );
+      applyAlter.applyInternal();
       applyAlter.apply(param);
       
     } catch (UnrecognizedOptionException e) {

@@ -142,6 +142,7 @@ public class DbInstance
       } catch (SQLException e) {
         //ignore
       }
+      con = null;
     }
   }
 
