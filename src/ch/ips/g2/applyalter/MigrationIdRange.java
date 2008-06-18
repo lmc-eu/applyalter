@@ -108,7 +108,7 @@ public class MigrationIdRange extends AbstractMigration
   protected long evaluateIdExpression( RunContext ctx, Connection con, String expression )
       throws SQLException
   {
-    String sql = "values " + expression;
+    String sql = "values (" + expression + ")";
     ctx.report( STATEMENT_STEP, "resolving range bound: %s", sql );
 
     PreparedStatement s = null;
