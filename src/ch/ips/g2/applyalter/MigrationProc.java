@@ -49,6 +49,7 @@ public class MigrationProc extends AbstractMigration
     this.step = step;
   }
 
+  @Override
   protected String getDefaultPlaceholder()
   {
     return MigrationIdRange.DEFAULT_PLACEHOLDER;
@@ -155,7 +156,7 @@ public class MigrationProc extends AbstractMigration
    */
   public boolean isFt() throws IllegalArgumentException {
     if (logid != null && maxblkcnt != null && description != null && statement != null &&
-        ( fromid != null || fromidexpr != null ) && (toid != null || toidexpr != null) 
+        ( fromid != null || fromidexpr != null ) && (toid != null || toidexpr != null)
         && step != null)
       return true;
     else if (logid != null && maxblkcnt != null && description != null && statement != null)

@@ -11,7 +11,7 @@ import java.sql.SQLException;
 /**
  * General migration: used in cases where full range splitting would be too ineffective.
  * It also supports ids that are not BIGINT (varchar, etc) and composite keys. With some effort,
- * it can be used even in very coplicated case when the "id list" is used for general comparison.
+ * it can be used even in very complicated case when the "id list" is used for general comparison.
  * <p>
  * Principle: special query is used to obtain list of IDs. Result of this query is stored to
  * temporary table and then processed in batches. Every batch is made by deleting rows from the idlist
@@ -64,6 +64,7 @@ public class MigrationIdList extends AbstractMigration
     this.idcolumn = idcolumn;
   }
 
+  @Override
   protected String getDefaultPlaceholder()
   {
     return DEFAULT_PLACEHOLDER;

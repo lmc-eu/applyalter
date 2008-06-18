@@ -7,6 +7,7 @@ import java.io.PrintStream;
  * @author Martin Caslavsky &lt;martin.caslavsky@ips-ag.cz&gt;
  * @version $Id$
  */
+@SuppressWarnings("serial")
 public class ApplyAlterException extends RuntimeException
 {
 

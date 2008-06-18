@@ -34,6 +34,7 @@ public class MigrationIdRange extends AbstractMigration
   private Long toid;
   private String toidexpr;
 
+  @Override
   protected String getDefaultPlaceholder()
   {
     return DEFAULT_PLACEHOLDER;
