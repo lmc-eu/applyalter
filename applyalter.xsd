@@ -38,6 +38,7 @@
       <xs:enumeration value="trigger" />
       <xs:enumeration value="reference" />
       <xs:enumeration value="column" />
+      <xs:enumeration value="check" />
     </xs:restriction>
   </xs:simpleType>
 
