@@ -4,33 +4,50 @@ import java.sql.Connection;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
+import java.util.ArrayList;
 
 
 /**
- * Databases configuration with method applied to all (or used) database instances
+ * Databases configuration with method applied to all (or used) database instances.
+ * Database istances with null {@link DbInstance#getHost()} are skipped in constructor and never included
+ * in {@link #instances}; they are, however, inclused in {@link #knownDbTypes}.
+ *
  * @author Martin Caslavsky &lt;martin.caslavsky@ips-ag.cz&gt;
  * @version $Id$
  */
 @SuppressWarnings({"ThrowableInstanceNeverThrown"})
 public class DbConfig
 {
-  protected List<DbInstance> d;
+  protected final List<DbInstance> instances;
+  protected final Set<String> knownDbTypes;
   
   /**
    * fail with first exception or collect them and report at one 
    */
   protected boolean ignorefailures;
-  
+
   @SuppressWarnings("unchecked")
-  public DbConfig(List<DbInstance> d, boolean ignorefailures) {
-    this.d = d;
-    for (DbInstance i: d)
-      i.getConnection();
+  public DbConfig( List<DbInstance> configuredDatabases, boolean ignorefailures )
+  {
+    this.instances = new ArrayList<DbInstance>();
+    this.knownDbTypes = new HashSet<String>();
+    for ( DbInstance instance : configuredDatabases )
+    {
+      if ( instance.getType() != null )
+      {
+        knownDbTypes.add( instance.getType() );
+      }
+      if ( instance.getHost() != null )
+      {
+        instances.add( instance );
+        instance.getConnection();
+      }
+    }
     this.ignorefailures = ignorefailures;
   }
-  
+
   public List<DbInstance> getEntries() {
-    return d;
+    return instances;
   }
  
   public boolean isIgnorefailures()
@@ -42,7 +59,7 @@ public class DbConfig
    * Close connections to all database instances
    */
   public void closeConnections() {
-    for (DbInstance i: d)
+    for (DbInstance i: instances )
     {
       i.closeConnection();
     }
@@ -72,7 +89,7 @@ public class DbConfig
   private void commitRollbackUsed( RunContext ctx, boolean commit, String msgFormat )
   {
     ApplyAlterExceptions aae = new ApplyAlterExceptions(ignorefailures);
-    for ( DbInstance i: d) {
+    for ( DbInstance i: instances ) {
       if (i.isUsed())
         try {
           ctx.report( ReportLevel.ALTER, msgFormat, i.getId() );
@@ -97,10 +114,7 @@ public class DbConfig
    */
   public Set<String> getDbTypes()
   {
-    Set<String> result = new HashSet<String>(d.size());
-    for (DbInstance i: d) 
-      result.add(i.getType());
-    return result;
+    return knownDbTypes;
   }
 
 

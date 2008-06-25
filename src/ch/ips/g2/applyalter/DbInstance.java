@@ -9,6 +9,8 @@ import com.thoughtworks.xstream.annotations.XStreamOmitField;
 
 /**
  * Database instance configuration. This class is not thread safe.
+ * Database instance can be "fake": just omit the host tag.
+ *
  * @author Martin Caslavsky &lt;martin.caslavsky@ips-ag.cz&gt;
  * @version $Id$
  */
@@ -24,6 +26,7 @@ public class DbInstance
   public String db;
   public String user;
   public String pass;
+  @XStreamOmitField
   private Connection con;
   @XStreamOmitField
   private boolean used;
