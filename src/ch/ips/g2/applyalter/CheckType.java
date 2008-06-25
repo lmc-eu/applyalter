@@ -27,7 +27,12 @@ public enum CheckType {
    * foreign key
    */
   reference("tab", "constname"),
-  
+
+  /**
+   * check constraint
+   */
+  check("tab", "constname"),
+
   /**
    * database column
    */
