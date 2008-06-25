@@ -5,10 +5,10 @@
     <xs:complexType>
       <xs:sequence>
         <xs:element name="schema" type="xs:string" minOccurs="0" maxOccurs="1" />
+        <xs:element name="instance" type="xs:string" minOccurs="0" maxOccurs="unbounded" />
         <xs:element name="isolation" type="isolation" minOccurs="0" maxOccurs="unbounded" />
         <xs:element name="checkok" type="xs:string" minOccurs="0" maxOccurs="1" />
         <xs:element ref="check" minOccurs="0" maxOccurs="unbounded" />
-        <xs:element name="instance" type="xs:string" minOccurs="0" maxOccurs="unbounded" />
         <xs:choice minOccurs="0" maxOccurs="unbounded">
           <xs:element name="sql" type="abstractstatement" />
           <xs:element name="comment" type="abstractstatement" />
@@ -25,6 +25,7 @@
       <xs:attribute name="type" use="required" type="checktype" />
       <xs:attribute name="name" use="required" type="xs:string" />
       <xs:attribute name="table" use="optional" type="xs:string" />
+      <xs:attribute name="inverted" use="optional" type="xs:boolean" />
     </xs:complexType>
   </xs:element>
 
@@ -70,11 +71,14 @@
   <xs:element name="migration-id-range">
     <xs:complexType>
       <xs:all>
+        <xs:element name="maxblkcnt" type="xs:int" minOccurs="0" maxOccurs="1" />
         <xs:element ref="canfail" minOccurs="0" maxOccurs="1" />
         <xs:element name="ignore-sqlstate" type="xs:string" minOccurs="0" />
         <xs:element name="ignore-sqlcode" type="xs:integer" minOccurs="0" />
 
           <xs:element name="statement" type="mstatement" minOccurs="1" maxOccurs="1" />
+        <xs:element name="logid" type="xs:string" minOccurs="0" maxOccurs="1" />
+        <xs:element name="description" type="xs:string" minOccurs="0" maxOccurs="1" />
         <xs:element name="fromid" type="xs:int" minOccurs="0" />
         <xs:element name="fromidexpr" type="xs:string" minOccurs="0" />
         <xs:element name="toid" type="xs:int" minOccurs="0" />
@@ -92,9 +96,10 @@
         <xs:element name="ignore-sqlcode" type="xs:integer" minOccurs="0" />
 
           <xs:element name="statement" type="mstatement" minOccurs="1" maxOccurs="1" />
-        <xs:element name="idquery" type="xs:int" minOccurs="1"/>
-        <xs:element name="idcolumn" type="xs:int" minOccurs="1"/>
+        <xs:element name="idquery" type="xs:string" minOccurs="1"/>
+        <xs:element name="idcolumn" type="xs:string" minOccurs="1"/>
         <xs:element name="step" type="xs:int" minOccurs="1" />
+        <xs:element name="description" type="xs:string" minOccurs="0" maxOccurs="1" />
       </xs:all>
     </xs:complexType>
   </xs:element>
@@ -120,9 +125,9 @@
   <xs:complexType name="abstractstatement">
     <xs:sequence>
       <xs:element ref="canfail" minOccurs="0" maxOccurs="1" />
+      <xs:element name="ignore-sqlstate" type="xs:string" minOccurs="0" maxOccurs="unbounded" />
+      <xs:element name="ignore-sqlcode" type="xs:integer" minOccurs="0" maxOccurs="unbounded" />
       <xs:element name="statement" type="xs:string" minOccurs="1" maxOccurs="1" />
-        <xs:element name="ignore-sqlstate" type="xs:string" minOccurs="0" maxOccurs="unbounded" />
-        <xs:element name="ignore-sqlcode" type="xs:integer" minOccurs="0" maxOccurs="unbounded" />
     </xs:sequence>
   </xs:complexType>
 
