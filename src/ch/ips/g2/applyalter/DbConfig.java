@@ -37,7 +37,7 @@ public class DbConfig
       {
         knownDbTypes.add( instance.getType() );
       }
-      if ( instance.getHost() != null )
+      if ( instance.isReal() )
       {
         instances.add( instance );
         instance.getConnection();

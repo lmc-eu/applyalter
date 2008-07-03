@@ -104,7 +104,8 @@ public class ApplyAlter
         MigrationProc.class,
         MigrationIdRange.class,
         MigrationIdList.class,
-        DbInstance.class
+        Db2Instance.class,
+        Db2Native.class
     } );
     xstream.alias("db", List.class);
     

@@ -1,23 +1,21 @@
 package ch.ips.g2.applyalter;
+
+import com.thoughtworks.xstream.annotations.XStreamOmitField;
+
 import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.SQLException;
 
-import com.thoughtworks.xstream.annotations.XStreamAlias;
-import com.thoughtworks.xstream.annotations.XStreamOmitField;
-
 
 /**
  * Database instance configuration. This class is not thread safe.
- * Database instance can be "fake": just omit the host tag.
+ * Database instance can be "fake": just omit the <code>db</code> tag.
  *
  * @author Martin Caslavsky &lt;martin.caslavsky@ips-ag.cz&gt;
  * @version $Id$
  */
-@XStreamAlias("dbinstance")
-public class DbInstance
+public abstract class DbInstance
 {
-  private static final String DB_DRIVER = "com.ibm.db2.jcc.DB2Driver";
 
   public String id;
   public String type;
@@ -30,14 +28,6 @@ public class DbInstance
   private Connection con;
   @XStreamOmitField
   private boolean used;
-
-  static {
-    try {
-      Class.forName(DB_DRIVER);
-    } catch (ClassNotFoundException e) {
-      throw new ApplyAlterException("Can not initialize db driver " + DB_DRIVER, e);
-    }
-  }
 
   public DbInstance() {
     super();
@@ -57,10 +47,7 @@ public class DbInstance
    * Get url for connecting <code>jdbc:db2://...</code>
    * @return url for connectiong
    */
-  public String getUrl()
-  {
-    return String.format("jdbc:db2://%s:%s/%s", host, port, db);
-  }
+  public abstract String getUrl();
 
   /**
    * Change database schema on this databse instance
@@ -114,13 +101,27 @@ public class DbInstance
     if (con == null) {
       String url = getUrl();
       try {
-        con = DriverManager.getConnection(url, user, pass);
+        con = connect( url );
         con.setAutoCommit(false);
       } catch (SQLException e) {
         throw new ApplyAlterException("Can not acquire db connection for " + url, e);
       }
     }
     return con;
+  }
+
+  /**
+   * The real implementation of {@link #getConnection()}. Default implementation just calls
+   * {@link DriverManager#getConnection(String, String, String)}, subclass can obtain the connection
+   * by some other way.
+   * @param url JDBC url, made by {@link #getUrl()}
+   * @return new connection
+   * @throws SQLException error getting connection
+   */
+  protected Connection connect( String url )
+      throws SQLException
+  {
+    return DriverManager.getConnection(url, user, pass);
   }
 
   /**
@@ -208,6 +209,17 @@ public class DbInstance
   public void setPass(String pass)
   {
     this.pass = pass;
+  }
+
+
+  /**
+   * Is this database connect valid, non-fake?
+   *
+   * @return true=real, false=fake
+   */
+  public boolean isReal()
+  {
+    return getDb() != null;
   }
 
 }
