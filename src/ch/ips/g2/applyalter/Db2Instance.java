@@ -11,7 +11,7 @@ import com.thoughtworks.xstream.annotations.XStreamAlias;
 @XStreamAlias("dbinstance")
 public class Db2Instance extends DbInstance
 {
-  private static final String DB_DRIVER = "com.ibm.db2.jcc.DB2Driver";
+  protected static final String DB_DRIVER = "com.ibm.db2.jcc.DB2Driver";
 
   static
   {
@@ -44,5 +44,5 @@ public class Db2Instance extends DbInstance
   {
     return String.format( "jdbc:db2://%s:%s/%s", host, port, db );
   }
-  
+
 }

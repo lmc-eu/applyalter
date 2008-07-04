@@ -16,7 +16,9 @@ import java.sql.SQLException;
 @XStreamAlias("db2native")
 public class Db2Native extends DbInstance
 {
-  private static final String DB_DRIVER = "COM.ibm.db2.jdbc.app.DB2Driver";
+  //private static final String DB_DRIVER = "COM.ibm.db2.jdbc.app.DB2Driver";
+
+  public String driver;
 
   public Db2Native()
   {
@@ -48,11 +50,18 @@ public class Db2Native extends DbInstance
   {
     try
     {
-      Class.forName( DB_DRIVER );
+      if ( driver != null )
+      {
+        Class.forName( driver );
+      }
+      else
+      {
+        Class.forName( Db2Instance.DB_DRIVER );
+      }
     }
     catch (ClassNotFoundException e)
     {
-      throw new ApplyAlterException( "Can not initialize db driver " + DB_DRIVER, e );
+      throw new ApplyAlterException( "Can not initialize db driver " + driver, e );
     }
 
     if ( user != null && user.length() > 0 )
