@@ -35,6 +35,7 @@ public class Db2Native extends DbInstance
    *
    * @return url for connectiong
    */
+  @Override
   public String getUrl()
   {
     return String.format( "jdbc:db2:%s", db );

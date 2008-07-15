@@ -40,6 +40,7 @@ public class Db2Instance extends DbInstance
    *
    * @return url for connectiong
    */
+  @Override
   public String getUrl()
   {
     return String.format( "jdbc:db2://%s:%s/%s", host, port, db );

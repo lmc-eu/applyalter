@@ -17,6 +17,7 @@ import com.thoughtworks.xstream.annotations.XStreamAlias;
  * @deprecated use {@link ch.ips.g2.applyalter.MigrationIdRange} or {@link ch.ips.g2.applyalter.MigrationIdList}
  * instead
  */
+@Deprecated
 @XStreamAlias("migration")
 public class MigrationProc extends AbstractMigration
 {
