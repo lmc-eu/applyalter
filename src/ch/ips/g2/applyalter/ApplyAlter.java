@@ -12,6 +12,7 @@ import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Enumeration;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Set;
 import java.util.zip.ZipEntry;
@@ -81,6 +82,7 @@ public class ApplyAlter
   
   protected XStream xstream = new XStream();
   protected String username;
+  protected Set<String> unapplied = new LinkedHashSet<String>();
 
 
   protected RunMode getRunMode()
@@ -395,6 +397,12 @@ public class ApplyAlter
             continue;
           }
 
+          if ( RunMode.LOOK.equals( getRunMode() )) 
+          {
+            runContext.report( MAIN, "Alter %s seems unapplied", a.getId());
+            unapplied.add( a.getId() );
+            continue;
+          }
           d.markConnectionUsed();
           // for all alter statements
           for ( AlterStatement s : a.getStatements() )
@@ -531,6 +539,14 @@ public class ApplyAlter
     }
   }
 
+  public String getUnappliedAlters()
+  {
+    StringBuilder s = new StringBuilder();
+    for (String i: unapplied)
+      s.append( i ).append( ' ' );
+    return s.toString();
+  }
+
   public static void main(String[] args)
   {
     Options o = new Options();
@@ -577,6 +593,11 @@ public class ApplyAlter
       ApplyAlter applyAlter = new ApplyAlter( a[0], rctx, ignfail, username );
       applyAlter.applyInternal();
       applyAlter.apply(param);
+      if ( RunMode.LOOK.equals( rnmd ) ) 
+      {
+
+        rctx.report( MAIN, "Unapplied alters: \n  %s", applyAlter.getUnappliedAlters() );
+      }
       
     } catch (UnrecognizedOptionException e) {
       System.out.println(e.getMessage());

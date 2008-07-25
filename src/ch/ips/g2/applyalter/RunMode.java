@@ -15,7 +15,11 @@ public enum RunMode {
    */
   DRY,
   /**
-   * Just print statements
+   * Execute checks, do nothing with statements, examine applyalter_log and print unapplied alters
+   */
+  LOOK,
+  /**
+   * Execute checks, but statements just print 
    */
   PRINT;
   
