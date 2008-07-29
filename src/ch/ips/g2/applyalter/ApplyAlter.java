@@ -12,6 +12,7 @@ import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Enumeration;
+import java.util.HashSet;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Set;
@@ -538,11 +539,47 @@ public class ApplyAlter
       DbUtils.close( s );
     }
   }
-
-  public String getUnappliedAlters()
-  {
+  
+  /**
+   * Get ids of applied alters read from log table 
+   * @param c database instance connection
+   * @return id of alters applied in this database instance connection 
+   * (non null empty list if problem occurs)   
+   */
+  public Set<String> getApplyAlterLog(Connection c) {
+    Set<String> result = new HashSet<String>();
+    PreparedStatement s = null;
+    try
+    {
+      s = c.prepareStatement( "select distinct id from applyalter_log" );
+      ResultSet r = s.executeQuery();
+      while ( r.next() )
+      {
+        result.add( r.getString( 1 ) );
+      }
+    }
+    catch (SQLException e)
+    {
+      runContext.report( ReportLevel.ERROR, "failed to read applyalter_log record: %s", e.getMessage() );
+    }
+    finally
+    {
+      DbUtils.close( s );
+    }
+    return result;
+  }
+  
+  /**
+   * Get list of unapplied alters (check failed, no record in applyalter_log)
+   * @return concatenated list ready to print
+   */
+  public String getUnappliedAlters() {
+    Set<String> un = new LinkedHashSet<String>(unapplied);
+    for (DbInstance d : db.getEntries() ) {
+      un.removeAll( getApplyAlterLog( d.getConnection() ) );
+    }
     StringBuilder s = new StringBuilder();
-    for (String i: unapplied)
+    for (String i: un)
       s.append( i ).append( ' ' );
     return s.toString();
   }
