@@ -551,7 +551,7 @@ public class ApplyAlter
     PreparedStatement s = null;
     try
     {
-      s = c.prepareStatement( "select distinct id from applyalter_log" );
+      s = c.prepareStatement( "select distinct id from wasg2.applyalter_log" );
       ResultSet r = s.executeQuery();
       while ( r.next() )
       {
