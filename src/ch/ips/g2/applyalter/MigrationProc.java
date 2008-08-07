@@ -215,7 +215,7 @@ public class MigrationProc extends AbstractMigration
     b.append("logid: ").append(logid).append("\n");
     b.append("maxblkcnt: ").append(maxblkcnt).append("\n");
     b.append("description: ").append(description).append("\n");
-    b.append( "fromid: " ).append( fromid ).append( '/' ).append( toidexpr ).append( "\n" );
+    b.append( "fromid: " ).append( fromid ).append( '/' ).append( fromidexpr ).append( "\n" );
     b.append( "toid: " ).append( toid ).append( '/' ).append( toidexpr ).append( "\n" );
     b.append("step: ").append(step).append("\n");
     return b.toString();
