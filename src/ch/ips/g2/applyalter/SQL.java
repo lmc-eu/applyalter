@@ -48,7 +48,7 @@ public class SQL extends AbstractStatement
     {
       st = connection.prepareStatement( sql );
       int rows = 0;
-      if( !st.execute() )
+      if( !st.execute() ) // allows "with ... select ... update ..."
       {
         rows = st.getUpdateCount();
       }
