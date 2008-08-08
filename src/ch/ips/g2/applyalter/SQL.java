@@ -47,7 +47,11 @@ public class SQL extends AbstractStatement
     try
     {
       st = connection.prepareStatement( sql );
-      int rows = st.executeUpdate();
+      int rows = 0;
+      if( !st.execute() )
+      {
+        rows = st.getUpdateCount();
+      }
       ctx.report( ReportLevel.STATEMENT_STEP, "statement executed, changed rows: %d%n", rows );
     }
     finally
