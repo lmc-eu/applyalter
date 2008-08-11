@@ -11,9 +11,9 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collection;
 import java.util.Enumeration;
 import java.util.HashSet;
-import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Set;
 import java.util.zip.ZipEntry;
@@ -26,6 +26,8 @@ import org.apache.commons.cli.HelpFormatter;
 import org.apache.commons.cli.Options;
 import org.apache.commons.cli.UnrecognizedOptionException;
 
+import com.google.common.collect.ArrayListMultimap;
+import com.google.common.collect.Multimap;
 import com.thoughtworks.xstream.XStream;
 import com.thoughtworks.xstream.XStreamException;
 import static ch.ips.g2.applyalter.ReportLevel.MAIN;
@@ -83,7 +85,7 @@ public class ApplyAlter
   
   protected XStream xstream = new XStream();
   protected String username;
-  protected Set<String> unapplied = new LinkedHashSet<String>();
+  protected Multimap<String,String> unapplied = new ArrayListMultimap<String,String>();
 
 
   protected RunMode getRunMode()
@@ -401,7 +403,7 @@ public class ApplyAlter
           if ( RunMode.LOOK.equals( getRunMode() )) 
           {
             runContext.report( MAIN, "Alter %s seems unapplied", a.getId());
-            unapplied.add( a.getId() );
+            unapplied.put(d.getId(), a.getId() );
             continue;
           }
           d.markConnectionUsed();
@@ -574,13 +576,18 @@ public class ApplyAlter
    * @return concatenated list ready to print
    */
   public String getUnappliedAlters() {
-    Set<String> un = new LinkedHashSet<String>(unapplied);
-    for (DbInstance d : db.getEntries() ) {
-      un.removeAll( getApplyAlterLog( d.getConnection() ) );
-    }
+    Multimap<String,String> un = new ArrayListMultimap<String,String>(unapplied);
     StringBuilder s = new StringBuilder();
-    for (String i: un)
-      s.append( i ).append( ' ' );
+    for (DbInstance d : db.getEntries() ) {
+      Collection<String> c = un.get( d.getId() );
+      c.removeAll( getApplyAlterLog( d.getConnection() ) );
+      if ( !c.isEmpty() ) {
+        s.append( d.getId() ).append( ": " );
+        for (String i: c)
+          s.append( i ).append( ' ' );
+        s.append( "\n" );
+      }
+    }
     return s.toString();
   }
 
@@ -633,7 +640,7 @@ public class ApplyAlter
       if ( RunMode.LOOK.equals( rnmd ) ) 
       {
 
-        rctx.report( MAIN, "Unapplied alters: \n  %s", applyAlter.getUnappliedAlters() );
+        rctx.report( MAIN, "Unapplied alters: \n%s", applyAlter.getUnappliedAlters() );
       }
       
     } catch (UnrecognizedOptionException e) {
