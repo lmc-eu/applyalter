@@ -25,9 +25,9 @@ public abstract class DbInstance
   public String user;
   public String pass;
   @XStreamOmitField
-  private Connection con;
+  protected Connection con;
   @XStreamOmitField
-  private boolean used;
+  protected boolean used;
 
   public DbInstance() {
     super();
