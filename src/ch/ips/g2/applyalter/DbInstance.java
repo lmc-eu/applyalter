@@ -5,6 +5,8 @@ import com.thoughtworks.xstream.annotations.XStreamOmitField;
 import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.SQLException;
+import java.sql.DatabaseMetaData;
+import java.sql.ResultSet;
 
 
 /**
@@ -48,6 +50,11 @@ public abstract class DbInstance
    * @return url for connectiong
    */
   public abstract String getUrl();
+
+  /**
+   * Engine identification: "DB2", "Postgresql", etc.
+   */
+  public abstract String getEngine();
 
   /**
    * Change database schema on this databse instance
@@ -221,5 +228,55 @@ public abstract class DbInstance
   {
     return getDb() != null;
   }
+
+  //--------------------------------------------------------------------------------------------------
+
+  protected static final String[] MDTYPES_TABLE = {"TABLE", "ALIAS"};
+  protected static final String[] MDTYPES_VIEW = {"VIEW"};
+
+  /**
+   * Process the Check for this database instance.
+   * Default implementation checks by using JDBC metadata, but some checks are not supported.
+   * @throws SQLException database error
+   * @throws UnsupportedOperationException unsupported check type
+   */
+  public boolean check( RunContext runContext, Connection con, Check chk, String schema )
+      throws SQLException, UnsupportedOperationException
+  {
+    final DatabaseMetaData md = con.getMetaData();
+    final String name = chk.getName();
+    final String table = chk.getTable();
+    ResultSet rs = null;
+    try
+    {
+
+      switch ( chk.getType() )
+      {
+        case table:
+          rs = md.getTables( null, schema, name, MDTYPES_TABLE );
+          break;
+        case view:
+          rs = md.getTables( null, schema, name, MDTYPES_VIEW );
+          break;
+        case column:
+          rs = md.getColumns( null, schema, table, name );
+          break;
+        default:
+          throw new UnsupportedOperationException(
+              getClass().getSimpleName() + " does not support check type " + chk.getType()
+          );
+      }
+
+      boolean rawResult = rs.next();
+      //XOR with the "isInverted" flag
+      return rawResult ^ chk.isInverted();
+
+    }
+    finally
+    {
+      DbUtils.close( null, rs );
+    }
+  }
+
 
 }

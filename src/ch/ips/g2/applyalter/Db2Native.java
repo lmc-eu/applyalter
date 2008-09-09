@@ -14,7 +14,7 @@ import java.sql.SQLException;
  * @version $Id$
  */
 @XStreamAlias("db2native")
-public class Db2Native extends DbInstance
+public class Db2Native extends Db2Instance
 {
   //private static final String DB_DRIVER = "COM.ibm.db2.jdbc.app.DB2Driver";
 

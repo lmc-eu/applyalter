@@ -72,7 +72,7 @@ public class ApplyAlter
    */
   public static final String XML_SUFFIX = ".xml";
 
-  private static final String[] INTERNAL_SCRIPTS = {"applyalter_log.xml"};
+  private static final String[] INTERNAL_SCRIPTS = {"applyalter_log_db2.xml", "applyalter_log_pgsql.xml"};
 
   /**
    * Configuration of database instances
@@ -109,6 +109,7 @@ public class ApplyAlter
         MigrationProc.class,
         MigrationIdRange.class,
         MigrationIdList.class,
+        PgInstance.class,
         Db2Instance.class,
         Db2Native.class
     } );
@@ -244,48 +245,20 @@ public class ApplyAlter
 
   /**
    * Check if object exists in database, which means an alter was applied already. 
-   * @param c Connection to database
-   * @param a check object
-   * @return true if object exists in database
+   * @param d
+   *@param c Connection to database
+   * @param a check object @return true if object exists in database
    * @throws ApplyAlterException
    */
-  protected boolean check(Connection c, Check a, String schema) throws ApplyAlterException
+  protected boolean check( DbInstance d, Connection c, Check a, String schema ) throws ApplyAlterException
   {
     a.check();
-    PreparedStatement s = null;
-    ResultSet rs = null;
     try {
-      final String sql = a.getType().getSQL();
-      StringBuilder buf = new StringBuilder();
-      buf.append( "Check: " ).append( sql ).append( " (" );
-
-      s = c.prepareStatement(sql);
-      int i = 1;
-      schema = schema.toUpperCase();
-      s.setString(i++, schema);
-      buf.append( schema ).append( ' ' );
-      if (a.table != null) {
-        String table = a.getTable().toUpperCase();
-        buf.append( table ).append( ' ' );
-        s.setString(i++, table);
-      }
-      String name = a.getName().toUpperCase();
-      buf.append(name);
-      s.setString(i++, name);
-      buf.append( ")" );
-
-      runContext.report( ReportLevel.STATEMENT_STEP, "%s", buf );
-
-      rs = s.executeQuery();
-      boolean rawResult = rs.next();
-
-      //XOR with the "isInverted" flag
-      return rawResult ^ a.isInverted();
-      
+      return d.check( runContext, c, a, schema );
     } catch (SQLException e) {
       throw new ApplyAlterException("Can not check " + a, e);
-    } finally {
-      DbUtils.close( s, rs );
+    } catch (UnsupportedOperationException e) {
+      throw new ApplyAlterException("Unsupported check " + a, e);
     }
   }
 
@@ -380,6 +353,14 @@ public class ApplyAlter
     // for all (or selected) databases
     for ( DbInstance d : db.getEntries() )
     {
+      //check engine
+      if ( a.engine != null && !a.engine.equalsIgnoreCase( d.getEngine() ) )
+      {
+        //skip
+        runContext.report( ALTER, "alterscript is only for %s, database is %s, skipping", a.engine, d.getEngine() );
+        continue;
+      }
+
       // apply to this instance?
       if ( a.isAllInstances() || a.getInstance().contains( d.getType() ) )
       {
@@ -393,7 +374,7 @@ public class ApplyAlter
           d.setIsolation( a.getIsolation() );
 
           // do checks
-          if ( executeChecks( a, c ) )
+          if ( executeChecks( a, d, c ) )
           {
             //alter already applied
             runContext.report( ALTER, "Alter already applied, skipping" );
@@ -482,7 +463,7 @@ public class ApplyAlter
     }
   }
 
-  protected boolean executeChecks( Alter alter, Connection connection )
+  protected boolean executeChecks( Alter alter, DbInstance d, Connection connection )
   {
     if ( check( connection, alter.getCheckok() ) )
     {
@@ -498,7 +479,7 @@ public class ApplyAlter
     }
     for ( Check i : checks )
     {
-      if ( !check( connection, i, alter.getSchema() ) )
+      if ( !check( d, connection, i, alter.getSchema() ) )
       {
         return false;
       }

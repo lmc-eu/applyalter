@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<alter>
+  <engine>DB2</engine>
+  <schema>wasg2</schema>
+  <check type="table" name="applyalter_log" />
+  <sql>
+    <statement>
+      create table wasg2.applyalter_log (
+        at timestamp default current timestamp,
+        username varchar(40),
+        id varchar(80), duration bigint
+      )
+    </statement>
+  </sql>
+</alter>

@@ -21,6 +21,12 @@ public class Alter
 {
   public static final String DEFAULT_SCHEMA = "wasg2";
   private String id;
+
+  /**
+   * Engine: when set, alterscript will be ignored for other engines.
+   */
+  public String engine;
+
   public String schema = DEFAULT_SCHEMA;
   public IsolationLevel isolation;
   public String checkok;

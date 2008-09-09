@@ -1,6 +1,9 @@
 package ch.ips.g2.applyalter;
 
 import java.sql.SQLException;
+import java.sql.Connection;
+import java.sql.DatabaseMetaData;
+import java.sql.ResultSet;
 
 import com.thoughtworks.xstream.annotations.XStreamAlias;
 
@@ -13,8 +16,10 @@ import com.thoughtworks.xstream.annotations.XStreamAlias;
 public class PgInstance extends DbInstance
 {
   protected static final String DB_DRIVER = "org.postgresql.Driver";
+  
+  public static final String ENGINE = "Postgresql";
 
-  static
+  protected static void initDriver()
   {
     try
     {
@@ -28,6 +33,7 @@ public class PgInstance extends DbInstance
 
   public PgInstance()
   {
+    initDriver();
   }
 
   public PgInstance( String id, String type, String host, Integer port, String db, String user, String pass )
@@ -56,11 +62,17 @@ public class PgInstance extends DbInstance
   }
 
   @Override
+  public String getEngine()
+  {
+    return ENGINE;
+  }
+
+  @Override
   public void setSchema( String schema )
       throws ApplyAlterException
   {
     try {
-      con.setCatalog(schema);
+      DbUtils.executeUpdate( con, "set search_path to " + schema + ",public" );
     } catch (SQLException e) {
       throw new ApplyAlterException("Can not set schema " + schema, e);
     }

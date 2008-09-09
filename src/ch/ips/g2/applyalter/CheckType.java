@@ -1,5 +1,8 @@
 package ch.ips.g2.applyalter;
 
+/**
+ * Check type. The string values here are parts of DB2 selects (it used to be hardcoded here).
+ */
 public enum CheckType {
   /**
    * Table 
@@ -85,12 +88,4 @@ public enum CheckType {
     return extra;
   }
 
-  public String getSQL() {
-    String sql = String.format("select * from syscat.%s where %sschema=? and %sname=?", 
-        tbl, abbr, abbr);
-    if (extra != null)
-      sql += String.format(" and %s=?", extra);
-    return sql;
-  }
-  
 }
