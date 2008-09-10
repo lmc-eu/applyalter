@@ -1,9 +1,6 @@
 package ch.ips.g2.applyalter;
 
 import java.sql.SQLException;
-import java.sql.Connection;
-import java.sql.DatabaseMetaData;
-import java.sql.ResultSet;
 
 import com.thoughtworks.xstream.annotations.XStreamAlias;
 
