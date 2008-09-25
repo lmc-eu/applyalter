@@ -64,6 +64,19 @@ public class PgInstance extends DbInstance
     return ENGINE;
   }
 
+  /**
+   * Special flag for "canfail" and "ignore-sql{code|state}" support on postgresql.
+   * On failure, postgresql marks transaction for rollback. When we need to ignore that error,
+   * statement must be done inside savepoint.
+   *
+   * @return true postgresql needs the savepoint
+   */
+  @Override
+  public boolean isSavepointNeededForIgnoredFailure()
+  {
+    return true;
+  }
+
   @Override
   public void setSchema( String schema )
       throws ApplyAlterException

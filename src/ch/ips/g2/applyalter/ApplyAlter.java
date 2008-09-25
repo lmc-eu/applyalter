@@ -9,6 +9,7 @@ import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.sql.Savepoint;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
@@ -82,7 +83,7 @@ public class ApplyAlter
    * run mode
    */
   protected RunContext runContext;
-  
+
   protected XStream xstream = new XStream();
   protected String username;
   protected Multimap<String,String> unapplied = new ArrayListMultimap<String,String>();
@@ -114,7 +115,7 @@ public class ApplyAlter
         Db2Native.class
     } );
     xstream.alias("db", List.class);
-    
+
     try {
       List<DbInstance> d = (List<DbInstance>) xstream.fromXML(new FileInputStream(dbconfigfile));
       db = new DbConfig(d, ignorefailures);
@@ -138,7 +139,7 @@ public class ApplyAlter
       String alterName = INTERNAL_SCRIPTS[i];
       internalAlters[i] = newAlter( alterName, getClass().getResourceAsStream( alterName ) );
     }
-    
+
     //nothing should be shown to user
     this.runContext = new InternalRunContext();
     //run, but don't close the connections!
@@ -149,16 +150,16 @@ public class ApplyAlter
   }
 
 
-  
+
   /**
    * Apply alter scripts (.xml/.zip) to all or selected database instances
-   * @param alterFiles files with XML serialized alter scripts 
+   * @param alterFiles files with XML serialized alter scripts
    * @throws ApplyAlterException if one of files is not .xml or .zip, or alter application fails
    * @see #apply(Alter...)
    */
   public void apply(String... alterFiles) throws ApplyAlterException {
     List<Alter> a = new ArrayList<Alter>(alterFiles.length);
-    
+
     for (int i=0; i<alterFiles.length; i++) {
       String f = alterFiles[i];
       if (f.endsWith(XML_SUFFIX))
@@ -168,7 +169,7 @@ public class ApplyAlter
       else
         throw new ApplyAlterException("Unknown filetype " + f);
     }
-    
+
     // actually apply them
     apply(a.toArray(new Alter[a.size()]));
   }
@@ -193,7 +194,7 @@ public class ApplyAlter
   }
 
   /**
-   * Create Alter instance from XML serialized from file 
+   * Create Alter instance from XML serialized from file
    * @param file XML serialized Alter
    * @return new Alter instance
    * @throws ApplyAlterException if file can not be found
@@ -227,7 +228,7 @@ public class ApplyAlter
           continue;
         l.add(i);
       }
-      
+
       List<Alter> a = new ArrayList<Alter>(z.size());
       ZipEntry[] t = l.toArray(new ZipEntry[l.size()]);
       Arrays.sort(t, new ZipEntryNameComparator());
@@ -244,7 +245,7 @@ public class ApplyAlter
   }
 
   /**
-   * Check if object exists in database, which means an alter was applied already. 
+   * Check if object exists in database, which means an alter was applied already.
    * @param d
    *@param c Connection to database
    * @param a check object @return true if object exists in database
@@ -263,7 +264,7 @@ public class ApplyAlter
   }
 
   /**
-   * Custom check if an alter was applieds already. 
+   * Custom check if an alter was applieds already.
    * @param c Connection to database
    * @param sql custom SQL statement
    * @return true if sql is not null and result of sql statement is equal {@link #CHECK_OK} value
@@ -381,7 +382,7 @@ public class ApplyAlter
             continue;
           }
 
-          if ( RunMode.LOOK.equals( getRunMode() )) 
+          if ( RunMode.LOOK.equals( getRunMode() ))
           {
             runContext.report( MAIN, "Alter %s seems unapplied", a.getId());
             unapplied.put(d.getId(), a.getId() );
@@ -429,6 +430,20 @@ public class ApplyAlter
   private void executeStatement( DbInstance db, AlterStatement s )
       throws ApplyAlterException
   {
+    Savepoint savepoint = null;
+    if ( db.isSavepointNeededForIgnoredFailure() &&
+        ( s.canFail() || s.getIgnoredSqlStates() != null || s.getIgnoredSqlCodes() != null ) )
+    {
+      try
+      {
+        savepoint = db.getConnection().setSavepoint(  );
+      }
+      catch (SQLException e)
+      {
+        throw new ApplyAlterException( e.getMessage(), e );
+      }
+    }
+    
     try
     {
       s.execute( db, runContext );
@@ -460,6 +475,19 @@ public class ApplyAlter
       }
       else
         throw new ApplyAlterException( e.getMessage(), e );
+
+      //ok, error ignored; rollback to savepoint
+      if ( savepoint != null )
+      {
+        try
+        {
+          db.getConnection().rollback( savepoint );
+        }
+        catch (SQLException e1)
+        {
+          throw new ApplyAlterException( e.getMessage(), e );
+        }
+      }
     }
   }
 
@@ -522,12 +550,12 @@ public class ApplyAlter
       DbUtils.close( s );
     }
   }
-  
+
   /**
-   * Get ids of applied alters read from log table 
+   * Get ids of applied alters read from log table
    * @param c database instance connection
-   * @return id of alters applied in this database instance connection 
-   * (non null empty list if problem occurs)   
+   * @return id of alters applied in this database instance connection
+   * (non null empty list if problem occurs)
    */
   public Set<String> getApplyAlterLog(Connection c) {
     Set<String> result = new HashSet<String>();
@@ -551,7 +579,7 @@ public class ApplyAlter
     }
     return result;
   }
-  
+
   /**
    * Get list of unapplied alters (check failed, no record in applyalter_log)
    * @return concatenated list ready to print
@@ -583,11 +611,11 @@ public class ApplyAlter
     boolean ignfail = false;
     boolean printstacktrace = false;
     RunMode rnmd = RunMode.SHARP;
-    
+
     try {
       CommandLineParser parser = new BasicParser();
       CommandLine cmd = parser.parse(o, args);
-      
+
       String username = cmd.getOptionValue(USER_NAME);
       if (username == null || "".equals(username.trim()))
         username = System.getProperty("user.name");
@@ -601,11 +629,11 @@ public class ApplyAlter
       String[] a = cmd.getArgs();
       if (a.length < 1)
         throw new UnrecognizedOptionException("Not enough parameters (dbconfig.xml alterscripts...)");
-      
+
       // prepare arguments
       String[] param = new String[a.length-1];
       System.arraycopy(a, 1, param, 0, a.length-1);
-      
+
       PrintWriterRunContext rctx = PrintWriterRunContext.createStdInstance();
       rctx.setRunMode( rnmd );
 
@@ -618,17 +646,17 @@ public class ApplyAlter
       ApplyAlter applyAlter = new ApplyAlter( a[0], rctx, ignfail, username );
       applyAlter.applyInternal();
       applyAlter.apply(param);
-      if ( RunMode.LOOK.equals( rnmd ) ) 
+      if ( RunMode.LOOK.equals( rnmd ) )
       {
 
         rctx.report( MAIN, "Unapplied alters: \n%s", applyAlter.getUnappliedAlters() );
       }
-      
+
     } catch (UnrecognizedOptionException e) {
       System.out.println(e.getMessage());
       new HelpFormatter().printHelp("applyalter [options] <dbconfig.xml> (alter.xml|alter.zip) ...", o, false);
     } catch (Throwable e) {
-      if (e instanceof ApplyAlterException && (!printstacktrace || ignfail)) 
+      if (e instanceof ApplyAlterException && (!printstacktrace || ignfail))
         ((ApplyAlterException)e).printMessages(System.err);
       else
         e.printStackTrace(System.err);

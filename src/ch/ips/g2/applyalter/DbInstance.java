@@ -57,6 +57,19 @@ public abstract class DbInstance
   public abstract String getEngine();
 
   /**
+   * Special flag for "canfail" and "ignore-sql{code|state}" support on postgresql.
+   * On failure, postgresql marks transaction for rollback. When we need to ignore that error,
+   * statement must be done inside savepoint.
+   *
+   * @return true=database does implicit rollback, savepoints needed; false = no special treatment needed
+   */
+  public boolean isSavepointNeededForIgnoredFailure()
+  {
+    //DB2 does not need this
+    return false;
+  }
+
+  /**
    * Change database schema on this databse instance
    * @param schema schema name to set
    * @throws ApplyAlterException if schema can not be set
