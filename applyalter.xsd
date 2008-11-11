@@ -4,10 +4,10 @@
   <xs:element name="alter">
     <xs:complexType>
       <xs:sequence>
-        <xs:element name="schema" type="xs:string" minOccurs="0" maxOccurs="1" />
-        <xs:element name="instance" type="xs:string" minOccurs="0" maxOccurs="unbounded" />
-        <xs:element name="isolation" type="isolation" minOccurs="0" maxOccurs="unbounded" />
-        <xs:element name="checkok" type="xs:string" minOccurs="0" maxOccurs="1" />
+        <xs:element ref="schema" minOccurs="0" maxOccurs="1" />
+        <xs:element ref="instance" minOccurs="0" maxOccurs="unbounded" />
+        <xs:element ref="isolation" minOccurs="0" maxOccurs="unbounded" />
+        <xs:element ref="checkok" minOccurs="0" maxOccurs="1" />
         <xs:element ref="check" minOccurs="0" maxOccurs="unbounded" />
         <xs:choice minOccurs="0" maxOccurs="unbounded">
           <xs:element name="sql" type="abstractstatement" />
@@ -20,6 +20,30 @@
       </xs:sequence>
     </xs:complexType>
   </xs:element>
+
+  <xs:element name="schema" type="xs:string" >
+    <xs:annotation>
+      <xs:documentation>Určení schématu, na který bude alter skript aplikován (pokud není uveden, vezme se default wasg2).</xs:documentation>
+    </xs:annotation>
+  </xs:element>
+
+  <xs:element name="instance" type="xs:string">
+    <xs:annotation>
+      <xs:documentation>Určení sady typů databázových instancí (master/slave/muj/...), na které bude seznam aplikován (pokud je sada prázdná, je aplikován na všechny).</xs:documentation>
+    </xs:annotation>
+  </xs:element>
+
+  <xs:element name="isolation" type="isolation">
+    <xs:annotation>
+      <xs:documentation>Úroveň izolace, jaká se má v průběhu alter skriptu použít: tag isolation může nabývat hodnot UR, CS, RS, RR</xs:documentation>
+    </xs:annotation>
+  </xs:element> 
+
+  <xs:element name="checkok" type="xs:string" >
+    <xs:annotation>
+      <xs:documentation>String checkok, který se vyhodnotí jako SQL dotaz a pokud vrátí OK znamená to, že alter byl nasazen</xs:documentation>
+    </xs:annotation>
+  </xs:element> 
 
   <xs:element name="check">
     <xs:complexType>
