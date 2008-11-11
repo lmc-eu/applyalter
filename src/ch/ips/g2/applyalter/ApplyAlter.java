@@ -106,6 +106,7 @@ public class ApplyAlter
     xstream.processAnnotations( new Class[]{
         Alter.class,
         SQL.class,
+        SelectQuery.class,
         Comment.class,
         MigrationProc.class,
         MigrationIdRange.class,
@@ -116,13 +117,18 @@ public class ApplyAlter
     } );
     xstream.alias("db", List.class);
 
-    try {
-      List<DbInstance> d = (List<DbInstance>) xstream.fromXML(new FileInputStream(dbconfigfile));
-      db = new DbConfig(d, ignorefailures);
-    } catch (FileNotFoundException e) {
-      throw new ApplyAlterException("File not found " + dbconfigfile, e);
-    } catch (XStreamException e) {
-      throw new ApplyAlterException("Unable to deserialize DbConfig from file " + dbconfigfile, e);
+    try
+    {
+      List<DbInstance> d = (List<DbInstance>) xstream.fromXML( new FileInputStream( dbconfigfile ) );
+      db = new DbConfig( d, ignorefailures );
+    }
+    catch ( FileNotFoundException e )
+    {
+      throw new ApplyAlterException( "File not found " + dbconfigfile, e );
+    }
+    catch ( XStreamException e )
+    {
+      throw new ApplyAlterException( "Unable to deserialize DbConfig from file " + dbconfigfile, e );
     }
   }
 
@@ -299,12 +305,20 @@ public class ApplyAlter
   protected void checkDbIds(Alter... alters) throws ApplyAlterException
   {
     Set<String> types = db.getDbTypes();
-    for (Alter a: alters) {
-      if (a.getInstance() == null)
+    for ( Alter a : alters )
+    {
+      if ( a.getInstance() == null )
+      {
         continue;
-      for (String i: a.getInstance())
-        if (!types.contains(i))
-          throw new ApplyAlterException("Unknown database type " + i + " in alter " + a.getId() + ". Possible values: " + types);
+      }
+      for ( String i : a.getInstance() )
+      {
+        if ( !types.contains( i ) )
+        {
+          throw new ApplyAlterException( "Unknown database type " + i + " in alter " + a.getId() + ". Possible values: "
+              + types );
+        }
+      }
     }
   }
 
@@ -516,7 +530,7 @@ public class ApplyAlter
   }
 
   /**
-   * Logs succesful alter to stdout and applyalter_log table
+   * Logs successful alter to stdout and applyalter_log table
    * @param c connection
    * @param dbid database id
    * @param id alter id
@@ -627,8 +641,10 @@ public class ApplyAlter
       printstacktrace = Boolean.valueOf(cmd.hasOption(PRINTSTACKTRACE));
 
       String[] a = cmd.getArgs();
-      if (a.length < 1)
-        throw new UnrecognizedOptionException("Not enough parameters (dbconfig.xml alterscripts...)");
+      if ( a.length < 1 )
+      {
+        throw new UnrecognizedOptionException( "Not enough parameters (dbconfig.xml alterscripts...)" );
+      }
 
       // prepare arguments
       String[] param = new String[a.length-1];
