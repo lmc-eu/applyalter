@@ -85,7 +85,7 @@ public abstract class AbstractMigration extends AbstractStatement
    * Utility method: commit step if the mode is {@link RunMode#SHARP}, rollback in other modes.
    * @param ctx context, used to provide run mode
    * @param connection database connection to commit/rollback
-   * @throws SQLException error commiting/rollbacking
+   * @throws SQLException error committing/rollbacking
    */
   protected void commitStep( RunContext ctx, Connection connection )
       throws SQLException

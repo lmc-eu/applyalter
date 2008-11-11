@@ -161,7 +161,7 @@ public class MigrationIdList extends AbstractMigration
   {
     checkParameters();
 
-    //ensure that everything is commited before migration
+    //ensure that everything is committed before migration
     final Connection connection = dbConn.getConnection();
     commitStep( ctx, connection );
 
@@ -177,7 +177,8 @@ public class MigrationIdList extends AbstractMigration
     );
     if ( mainQuery.replacements < 1 )
     {
-      throw new ApplyAlterException( "invalid alter script: no %s in the query; " + this, getPlaceholder() );
+      throw new ApplyAlterException( "invalid alter script: no %s in the query; %s", getPlaceholder() == null ? "<null>"
+          : getPlaceholder(), this.toString() );
     }
 
 
