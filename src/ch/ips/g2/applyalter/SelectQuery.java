@@ -62,7 +62,7 @@ public class SelectQuery extends AbstractStatement
         StringBuffer out = new StringBuffer( "" );
         for ( int column = 1; column <= columns; column++ )
         {
-          out.append( "" + rs.getString( column ) );
+          out.append( rs.getString( column ) );
           if ( column < columns )
           {
             out.append( "," );
@@ -74,11 +74,7 @@ public class SelectQuery extends AbstractStatement
     }
     finally
     {
-      if ( rs != null )
-      {
-        rs.close();
-      }
-      DbUtils.close( st );
+      DbUtils.close( st, rs );
     }
 
   }
