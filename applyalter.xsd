@@ -11,6 +11,7 @@
         <xs:element ref="check" minOccurs="0" maxOccurs="unbounded" />
         <xs:choice minOccurs="0" maxOccurs="unbounded">
           <xs:element name="sql" type="abstractstatement" />
+          <xs:element name="select" type="abstractstatement" />
           <xs:element name="comment" type="abstractstatement" />
           <xs:element ref="migration" />
           <xs:element ref="migration-id-list" />
