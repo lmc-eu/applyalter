@@ -2,6 +2,9 @@
 <xs:schema xmlns:xs="http://www.w3.org/2001/XMLSchema">
 
   <xs:element name="alter">
+    <xs:annotation>
+      <xs:documentation>ApplyAlter je commandline tool pro kontrolu a aplikaci alter scriptů. Skripty jsou aplikovány na jednu nebo více databázových instancí (master/slave/muj/...), jsou spouštěny v transakci a podporuje tzv. migrace. Tool může být spuštěn "naostro" nebo ve dvou testovacích módech a poskytuje podporu pro ověření, zda byl už aplikován: jednoduchým testem na existenci databázového objektu nebo libovolným SQL příkazem. Další informace jsou uvedeny na adrese https://twiki.ips-ag.net/bin/view/LMCG2/ApplyAlter</xs:documentation>
+    </xs:annotation>
     <xs:complexType>
       <xs:sequence>
         <xs:element ref="schema" minOccurs="0" maxOccurs="1" />
@@ -10,9 +13,9 @@
         <xs:element ref="checkok" minOccurs="0" maxOccurs="1" />
         <xs:element ref="check" minOccurs="0" maxOccurs="unbounded" />
         <xs:choice minOccurs="0" maxOccurs="unbounded">
-          <xs:element name="sql" type="abstractstatement" />
-          <xs:element name="select" type="abstractstatement" />
-          <xs:element name="comment" type="abstractstatement" />
+          <xs:element ref="sql" />
+          <xs:element ref="select" />
+          <xs:element ref="comment" />
           <xs:element ref="migration" />
           <xs:element ref="migration-id-list" />
           <xs:element ref="migration-id-range" />
@@ -46,6 +49,9 @@
   </xs:element> 
 
   <xs:element name="check">
+    <xs:annotation>
+      <xs:documentation>Pomocí klauzulí check je možné specifikovat schéma a jméno pro: tabulku (table) / view / index / proceduru (routine) / trigger / cizí klíč (reference) / check / sloupce (column) jejíž existence je kontrolována (poslední tři vyžadují ještě uvedení jména tabulky). Přidáním atributu inverted s hodnotou true se smysl testu obrátí (tj. testuje neexistenci).</xs:documentation>
+    </xs:annotation>
     <xs:complexType>
       <xs:attribute name="type" use="required" type="checktype" />
       <xs:attribute name="name" use="required" type="xs:string" />
@@ -76,7 +82,28 @@
     </xs:restriction>
   </xs:simpleType>
 
+  <xs:element name="comment" type="abstractstatement">
+    <xs:annotation>
+      <xs:documentation>Komentář, který se jen vypisuje na výstup. Tag  může obsahovat úplně cokoliv.</xs:documentation>
+    </xs:annotation>
+  </xs:element>
+
+  <xs:element name="sql" type="abstractstatement">
+    <xs:annotation>
+      <xs:documentation>Běžný SQL příkaz, který se provede. Příkaz je právě jeden a není nijak speciálně označen (tj. není ukončen středníkem). Může však obsahovat složitější kód jako je vytvoření funkce či procedury, aniž by bylo nutno nějak ošetřovat středníky.</xs:documentation>
+    </xs:annotation>
+  </xs:element>
+
+  <xs:element name="select" type="abstractstatement">
+    <xs:annotation>
+      <xs:documentation>Běžný SQL dotaz typu SELECT, který se provede a na výstup se zapíšou záznamy přečtené z databáze. Podobně jako u výše popsaného příkazu sql, i zde nesmí být na konci příkazu uveden středník. Načtené záznamy jsou vypsány na výstup, začátek výpisu začíná levou složenou závorkou, končí pravou složenou závorkou a jednotlivé položky v záznamech jsou od sebe odděleny čárkou (bez mezery!), tj. zpětný parsing načtených dat je poměrně jednoduchý.</xs:documentation>
+    </xs:annotation>
+  </xs:element>
+
   <xs:element name="migration">
+    <xs:annotation>
+      <xs:documentation>Obsolete: tento příkaz by se neměl používat, psát podrobnou dokumentaci ani nemá smysl. Jedná se o jednoduchý wrapper volající jednu ze dvou stored procedure v databázi: BLOCKUPDATE nebo BLOCKUPDATE_FT.</xs:documentation>
+    </xs:annotation>
     <xs:complexType>
       <xs:all>
         <xs:element name="logid" type="logid" />
@@ -95,14 +122,16 @@
   </xs:element>
 
   <xs:element name="migration-id-range">
+    <xs:annotation>
+      <xs:documentation>Princip této migrace spočívá v tom, že se rozsah číselného identifikátoru (ID, musí se jednat o BIGINT) rozdělí na bloky o určité velikosti a pro každý blok se pak provede příkaz. Příkaz musí obsahovat speciální značku BETWEEN_RANGE, která bude nahrazena údajem o rozsahu ve formě ? and ?.</xs:documentation>
+    </xs:annotation>
     <xs:complexType>
       <xs:all>
         <xs:element name="maxblkcnt" type="xs:int" minOccurs="0" maxOccurs="1" />
         <xs:element ref="canfail" minOccurs="0" maxOccurs="1" />
         <xs:element name="ignore-sqlstate" type="xs:string" minOccurs="0" />
         <xs:element name="ignore-sqlcode" type="xs:integer" minOccurs="0" />
-
-          <xs:element name="statement" type="mstatement" minOccurs="1" maxOccurs="1" />
+        <xs:element name="statement" type="mstatement" minOccurs="1" maxOccurs="1" />
         <xs:element name="logid" type="xs:string" minOccurs="0" maxOccurs="1" />
         <xs:element name="description" type="xs:string" minOccurs="0" maxOccurs="1" />
         <xs:element name="fromid" type="xs:int" minOccurs="0" />
@@ -115,13 +144,15 @@
   </xs:element>
 
   <xs:element name="migration-id-list">
+    <xs:annotation>
+      <xs:documentation>Tato migrace je složitější, ale obecnější. Na rozdíl od migration-id-range si nejdřív vytvoří seznam všech záznamů které je nutné zmigrovat, tento seznam pak zpracovává po dávkách. To mimo jiné znamená, že pokud se jedná jen o malé procento záznamů (typicky: odstranění nekonzistentních/nesmyslných řádek), bude tato migrace rychlejší než migration-id-range; ve většině praktických případů bude by ale naopak byla výrazně pomalejší (typicky: vyplnění nově přidaného sloupce, to je práce pro migration-id-range).</xs:documentation>
+    </xs:annotation>
     <xs:complexType>
       <xs:all>
         <xs:element ref="canfail" minOccurs="0" maxOccurs="1" />
         <xs:element name="ignore-sqlstate" type="xs:string" minOccurs="0" />
         <xs:element name="ignore-sqlcode" type="xs:integer" minOccurs="0" />
-
-          <xs:element name="statement" type="mstatement" minOccurs="1" maxOccurs="1" />
+        <xs:element name="statement" type="mstatement" minOccurs="1" maxOccurs="1" />
         <xs:element name="idquery" type="xs:string" minOccurs="1"/>
         <xs:element name="idcolumn" type="xs:string" minOccurs="1"/>
         <xs:element name="step" type="xs:int" minOccurs="1" />
@@ -158,6 +189,9 @@
   </xs:complexType>
 
   <xs:element name="canfail">
+    <xs:annotation>
+      <xs:documentation>Pokud je uvedeno s hodnotou true, je ignorována každá chyba tohoto příkazu a pokračuje se dál (doporučuji nepoužívat, lepší je ignore-sqlstate a ignore-sqlcode).</xs:documentation>
+    </xs:annotation>
     <xs:simpleType>
       <xs:restriction base="xs:string">
         <xs:enumeration value="true" />
