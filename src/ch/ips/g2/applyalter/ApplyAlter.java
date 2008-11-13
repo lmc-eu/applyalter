@@ -1,5 +1,9 @@
 package ch.ips.g2.applyalter;
 
+import static ch.ips.g2.applyalter.ReportLevel.ALTER;
+import static ch.ips.g2.applyalter.ReportLevel.DETAIL;
+import static ch.ips.g2.applyalter.ReportLevel.MAIN;
+
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
@@ -20,20 +24,23 @@ import java.util.Set;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipFile;
 
+import javax.xml.transform.stream.StreamSource;
+import javax.xml.validation.Schema;
+import javax.xml.validation.SchemaFactory;
+import javax.xml.validation.Validator;
+
 import org.apache.commons.cli.BasicParser;
 import org.apache.commons.cli.CommandLine;
 import org.apache.commons.cli.CommandLineParser;
 import org.apache.commons.cli.HelpFormatter;
 import org.apache.commons.cli.Options;
 import org.apache.commons.cli.UnrecognizedOptionException;
+import org.xml.sax.SAXException;
 
 import com.google.common.collect.ArrayListMultimap;
 import com.google.common.collect.Multimap;
 import com.thoughtworks.xstream.XStream;
 import com.thoughtworks.xstream.XStreamException;
-import static ch.ips.g2.applyalter.ReportLevel.MAIN;
-import static ch.ips.g2.applyalter.ReportLevel.ALTER;
-import static ch.ips.g2.applyalter.ReportLevel.DETAIL;
 
 
 /**
@@ -63,7 +70,10 @@ public class ApplyAlter
    * User name parameter name
    */
   public static final String USER_NAME = "u";
-
+  /**
+   * XML validation on/off
+   */
+  public static final String NO_VALIDATE_XML = "n";
   /**
    * Suffix for zip file
    */
@@ -75,6 +85,10 @@ public class ApplyAlter
 
   private static final String[] INTERNAL_SCRIPTS = {"applyalter_log_db2.xml", "applyalter_log_pgsql.xml"};
 
+  /**
+   * XML validator
+   */
+  private Validator validator = null;
   /**
    * Configuration of database instances
    */
@@ -95,11 +109,17 @@ public class ApplyAlter
   }
 
   /**
-   * Create instance
+   * Create instance of ApplyAlter.
+   *
    * @param dbconfigfile XML serialized {@link DbConfig} (database configuration)
+   * @param runContext execution context, providing methods to output the results and report the processing steps.
+   * @param ignorefailures
+   * @param username
+   * @param validateXml 
    */
   @SuppressWarnings("unchecked")
-  public ApplyAlter(String dbconfigfile, RunContext runContext, boolean ignorefailures, String username) {
+  public ApplyAlter( String dbconfigfile, RunContext runContext, boolean ignorefailures, String username, boolean validateXml )
+  {
     this.runContext = runContext;
     this.username = username;
 
@@ -121,6 +141,10 @@ public class ApplyAlter
     {
       List<DbInstance> d = (List<DbInstance>) xstream.fromXML( new FileInputStream( dbconfigfile ) );
       db = new DbConfig( d, ignorefailures );
+      if ( validateXml )
+      {
+        this.validator = readXsd( runContext );
+      }
     }
     catch ( FileNotFoundException e )
     {
@@ -130,6 +154,67 @@ public class ApplyAlter
     {
       throw new ApplyAlterException( "Unable to deserialize DbConfig from file " + dbconfigfile, e );
     }
+    catch ( SAXException e )
+    {
+      throw new ApplyAlterException( "Unable to initialize XML validator", e );
+    }
+  }
+
+  /**
+   * Read XSD file applyalter.xsd and construct validator.
+   *
+   * @param runContext execution context, providing methods to output the results and report the processing steps.
+   * @throws SAXException
+   */
+  private Validator readXsd( RunContext runContext )
+      throws SAXException
+  {
+    // 1. Lookup a factory for the W3C XML Schema language
+    SchemaFactory factory = SchemaFactory.newInstance( "http://www.w3.org/2001/XMLSchema" );
+
+    // 2. Compile the schema.
+    Schema schema = compileXMLSchema( runContext, factory );
+
+    // 3. Get a validator from the schema and return it.
+    return schema.newValidator();
+  }
+
+  /**
+   * Read XSD file and compile XML schema.
+   *
+   * @param runContext execution context, providing methods to output the results and report the processing steps.
+   * @param factory factory that creates Schema objects. Entry-point to the validation API.
+   * @return Immutable in-memory representation of XML grammar.
+   * @throws SAXException
+   */
+  private Schema compileXMLSchema( RunContext runContext, SchemaFactory factory )
+      throws SAXException
+  {
+    Schema schema = null;
+
+    try
+    {
+      File schemaLocation = new File( "applyalter.xsd" );
+      schema = factory.newSchema( schemaLocation );
+      if ( schema != null )
+      {
+        runContext.report( MAIN, "applyalter.xsd successfuly read from file" );
+      }
+    }
+    catch ( Exception e )
+    {
+      runContext.report( MAIN, "Cannot read applyalter.xsd from file, trying read it from applyalter.jar" );
+    }
+    if ( schema == null )
+    {
+      StreamSource inputSource = new StreamSource( ApplyAlter.class.getResourceAsStream( "/applyalter.xsd" ) );
+      schema = factory.newSchema( inputSource );
+      if ( schema != null )
+      {
+        runContext.report( MAIN, "applyalter.xsd read successfuly read from applyalter.jar" );
+      }
+    }
+    return schema;
   }
 
   /**
@@ -163,21 +248,30 @@ public class ApplyAlter
    * @throws ApplyAlterException if one of files is not .xml or .zip, or alter application fails
    * @see #apply(Alter...)
    */
-  public void apply(String... alterFiles) throws ApplyAlterException {
-    List<Alter> a = new ArrayList<Alter>(alterFiles.length);
+  public void apply( boolean validateXml, String... alterFiles )
+      throws ApplyAlterException
+  {
+    List<Alter> a = new ArrayList<Alter>( alterFiles.length );
 
-    for (int i=0; i<alterFiles.length; i++) {
+    for ( int i = 0; i < alterFiles.length; i++ )
+    {
       String f = alterFiles[i];
-      if (f.endsWith(XML_SUFFIX))
-        a.add(fromFile(f));
-      else if (f.endsWith(ZIP_SUFFIX))
-        a.addAll(fromZip(f));
+      if ( f.endsWith( XML_SUFFIX ) )
+      {
+        a.add( fromFile( f ) );
+      }
+      else if ( f.endsWith( ZIP_SUFFIX ) )
+      {
+        a.addAll( fromZip( f ) );
+      }
       else
-        throw new ApplyAlterException("Unknown filetype " + f);
+      {
+        throw new ApplyAlterException( "Unknown filetype " + f );
+      }
     }
 
     // actually apply them
-    apply(a.toArray(new Alter[a.size()]));
+    apply( a.toArray( new Alter[a.size()] ) );
   }
 
   /**
@@ -205,13 +299,29 @@ public class ApplyAlter
    * @return new Alter instance
    * @throws ApplyAlterException if file can not be found
    */
-  protected Alter fromFile(String file) throws ApplyAlterException
+  protected Alter fromFile( String file )
+      throws ApplyAlterException
   {
-    try {
-      FileInputStream i = new FileInputStream(file);
-      return newAlter(file, i);
-    } catch (FileNotFoundException e) {
-      throw new ApplyAlterException("File not found " + file, e);
+    try
+    {
+      if ( validator != null )
+      {
+        validator.validate( new StreamSource( new FileInputStream( file ) ) );
+      }
+      FileInputStream i = new FileInputStream( file );
+      return newAlter( file, i );
+    }
+    catch ( FileNotFoundException e )
+    {
+      throw new ApplyAlterException( "File not found " + file, e );
+    }
+    catch ( SAXException e )
+    {
+      throw new ApplyAlterException( "Can not validate file " + file, e );
+    }
+    catch ( IOException e )
+    {
+      throw new ApplyAlterException( "I/O exception during XML file validation " + file, e );
     }
   }
 
@@ -222,31 +332,48 @@ public class ApplyAlter
    * @return list of new Alter instances
    * @throws ApplyAlterException if error occurs during zip file processing
    */
-  protected List<Alter> fromZip(String zipfile) {
-    try {
-      ZipFile z = new ZipFile(zipfile);
+  protected List<Alter> fromZip( String zipfile )
+  {
+    String id = null;
+    try
+    {
+      ZipFile z = new ZipFile( zipfile );
       Enumeration<? extends ZipEntry> e = z.entries();
       List<ZipEntry> l = new ArrayList<ZipEntry>();
 
-      while (e.hasMoreElements()) {
+      while ( e.hasMoreElements() )
+      {
         ZipEntry i = e.nextElement();
-        if (i.isDirectory() || !i.getName().endsWith(ApplyAlter.XML_SUFFIX))
+        if ( i.isDirectory() || !i.getName().endsWith( ApplyAlter.XML_SUFFIX ) )
+        {
           continue;
-        l.add(i);
+        }
+        l.add( i );
       }
 
-      List<Alter> a = new ArrayList<Alter>(z.size());
-      ZipEntry[] t = l.toArray(new ZipEntry[l.size()]);
-      Arrays.sort(t, new ZipEntryNameComparator());
-      for (ZipEntry i: t) {
-        String id = i.getName();
-        InputStream s = z.getInputStream(i);
-        a.add(newAlter(id, s));
+      List<Alter> a = new ArrayList<Alter>( z.size() );
+      ZipEntry[] t = l.toArray( new ZipEntry[l.size()] );
+      Arrays.sort( t, new ZipEntryNameComparator() );
+      for ( ZipEntry i : t )
+      {
+        id = i.getName();
+        InputStream s = z.getInputStream( i );
+        if ( validator != null )
+        {
+          validator.validate( new StreamSource( z.getInputStream( i ) ) );
+        }
+        a.add( newAlter( id, s ) );
       }
 
       return a;
-    } catch (IOException e) {
-      throw new ApplyAlterException("Error reading zip file " + zipfile, e);
+    }
+    catch ( IOException e )
+    {
+      throw new ApplyAlterException( "Error reading zip file " + zipfile, e );
+    }
+    catch ( SAXException e )
+    {
+      throw new ApplyAlterException( "Can not validate file item in zip file: " + id, e );
     }
   }
 
@@ -614,31 +741,44 @@ public class ApplyAlter
     return s.toString();
   }
 
+  /**
+   * Main function, which can be called from command line.
+   *
+   * @param args
+   */
   public static void main(String[] args)
   {
     Options o = new Options();
-    o.addOption(IGNORE_FAILURES, false, "ignore failures");
-    o.addOption(PRINTSTACKTRACE, false, "print stacktrace");
-    o.addOption(RUN_MODE, true, "runmode, possible values: "+ Arrays.toString( RunMode.values() ) );
-    o.addOption(USER_NAME, true, "user name");
+    o.addOption( IGNORE_FAILURES, false, "ignore failures" );
+    o.addOption( PRINTSTACKTRACE, false, "print stacktrace" );
+    o.addOption( RUN_MODE, true, "runmode, possible values: " + Arrays.toString( RunMode.values() ) );
+    o.addOption( USER_NAME, true, "user name" );
+    o.addOption( NO_VALIDATE_XML, false, "disables XML file with alter script validation" );
 
     boolean ignfail = false;
     boolean printstacktrace = false;
+    boolean validateXml = true;
     RunMode rnmd = RunMode.SHARP;
 
-    try {
+    try
+    {
       CommandLineParser parser = new BasicParser();
-      CommandLine cmd = parser.parse(o, args);
+      CommandLine cmd = parser.parse( o, args );
 
-      String username = cmd.getOptionValue(USER_NAME);
-      if (username == null || "".equals(username.trim()))
-        username = System.getProperty("user.name");
-      if (username == null || "".equals(username.trim()))
-        throw new UnrecognizedOptionException("User name can not be determined, use parameter -" + USER_NAME);
+      String username = cmd.getOptionValue( USER_NAME );
+      if ( username == null || "".equals( username.trim() ) )
+      {
+        username = System.getProperty( "user.name" );
+      }
+      if ( username == null || "".equals( username.trim() ) )
+      {
+        throw new UnrecognizedOptionException( "User name can not be determined, use parameter -" + USER_NAME );
+      }
 
-      rnmd = RunMode.getRunMode(cmd.getOptionValue(RUN_MODE), rnmd);
-      ignfail = Boolean.valueOf(cmd.hasOption(IGNORE_FAILURES));
-      printstacktrace = Boolean.valueOf(cmd.hasOption(PRINTSTACKTRACE));
+      rnmd = RunMode.getRunMode( cmd.getOptionValue( RUN_MODE ), rnmd );
+      ignfail = Boolean.valueOf( cmd.hasOption( IGNORE_FAILURES ) );
+      printstacktrace = Boolean.valueOf( cmd.hasOption( PRINTSTACKTRACE ) );
+      validateXml = Boolean.valueOf( !cmd.hasOption( NO_VALIDATE_XML ));
 
       String[] a = cmd.getArgs();
       if ( a.length < 1 )
@@ -659,24 +799,26 @@ public class ApplyAlter
       rctx.report( MAIN, "ignore failures: %s", ignfail );
       rctx.report( MAIN, "print stacktrace: %s", printstacktrace );
 
-      ApplyAlter applyAlter = new ApplyAlter( a[0], rctx, ignfail, username );
+      ApplyAlter applyAlter = new ApplyAlter( a[0], rctx, ignfail, username, validateXml );
       applyAlter.applyInternal();
-      applyAlter.apply(param);
+      applyAlter.apply(validateXml, param);
       if ( RunMode.LOOK.equals( rnmd ) )
       {
-
         rctx.report( MAIN, "Unapplied alters: \n%s", applyAlter.getUnappliedAlters() );
       }
-
-    } catch (UnrecognizedOptionException e) {
-      System.out.println(e.getMessage());
-      new HelpFormatter().printHelp("applyalter [options] <dbconfig.xml> (alter.xml|alter.zip) ...", o, false);
-    } catch (Throwable e) {
-      if (e instanceof ApplyAlterException && (!printstacktrace || ignfail))
-        ((ApplyAlterException)e).printMessages(System.err);
+    }
+    catch ( UnrecognizedOptionException e )
+    {
+      System.out.println( e.getMessage() );
+      new HelpFormatter().printHelp( "applyalter [options] <dbconfig.xml> (alter.xml|alter.zip) ...", o, false );
+    }
+    catch ( Throwable e )
+    {
+      if ( e instanceof ApplyAlterException && ( !printstacktrace || ignfail ) )
+        ( (ApplyAlterException) e ).printMessages( System.err );
       else
-        e.printStackTrace(System.err);
-      System.exit(-1);
+        e.printStackTrace( System.err );
+      System.exit( -1 );
     }
   }
 
