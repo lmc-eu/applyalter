@@ -55,6 +55,7 @@ public class Db2Instance extends DbInstance
   /**
    * Engine identification: "DB2", "Postgresql", etc.
    */
+  @Override
   public String getEngine()
   {
     return ENGINE;
