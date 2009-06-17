@@ -1,10 +1,10 @@
 package ch.ips.g2.applyalter;
-import java.sql.SQLException;
 import java.sql.Connection;
+import java.sql.SQLException;
+import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
-import java.util.ArrayList;
 
 
 /**
@@ -26,7 +26,6 @@ public class DbConfig
    */
   protected boolean ignorefailures;
 
-  @SuppressWarnings("unchecked")
   public DbConfig( List<DbInstance> configuredDatabases, boolean ignorefailures )
   {
     this.instances = new ArrayList<DbInstance>();
