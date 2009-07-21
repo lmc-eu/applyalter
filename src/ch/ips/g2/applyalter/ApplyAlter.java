@@ -132,6 +132,7 @@ public class ApplyAlter
         MigrationIdRange.class,
         MigrationIdList.class,
         PgInstance.class,
+        OracleInstance.class,
         Db2Instance.class,
         Db2Native.class
     } );
