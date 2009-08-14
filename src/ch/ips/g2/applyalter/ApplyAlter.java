@@ -4,6 +4,21 @@ import static ch.ips.g2.applyalter.ReportLevel.ALTER;
 import static ch.ips.g2.applyalter.ReportLevel.DETAIL;
 import static ch.ips.g2.applyalter.ReportLevel.MAIN;
 
+import ch.ips.base.BaseUtil;
+
+import org.apache.commons.cli.BasicParser;
+import org.apache.commons.cli.CommandLine;
+import org.apache.commons.cli.CommandLineParser;
+import org.apache.commons.cli.HelpFormatter;
+import org.apache.commons.cli.Options;
+import org.apache.commons.cli.UnrecognizedOptionException;
+import org.xml.sax.SAXException;
+
+import javax.xml.transform.stream.StreamSource;
+import javax.xml.validation.Schema;
+import javax.xml.validation.SchemaFactory;
+import javax.xml.validation.Validator;
+
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
@@ -23,19 +38,6 @@ import java.util.List;
 import java.util.Set;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipFile;
-
-import javax.xml.transform.stream.StreamSource;
-import javax.xml.validation.Schema;
-import javax.xml.validation.SchemaFactory;
-import javax.xml.validation.Validator;
-
-import org.apache.commons.cli.BasicParser;
-import org.apache.commons.cli.CommandLine;
-import org.apache.commons.cli.CommandLineParser;
-import org.apache.commons.cli.HelpFormatter;
-import org.apache.commons.cli.Options;
-import org.apache.commons.cli.UnrecognizedOptionException;
-import org.xml.sax.SAXException;
 
 import com.google.common.collect.ArrayListMultimap;
 import com.google.common.collect.Multimap;
@@ -138,9 +140,11 @@ public class ApplyAlter
     } );
     xstream.alias("db", List.class);
 
+    FileInputStream fis = null;
     try
     {
-      List<DbInstance> d = (List<DbInstance>) xstream.fromXML( new FileInputStream( dbconfigfile ) );
+      fis = new FileInputStream( dbconfigfile );
+      List<DbInstance> d = (List<DbInstance>) xstream.fromXML( fis );
       db = new DbConfig( d, ignorefailures );
       if ( validateXml )
       {
@@ -158,6 +162,10 @@ public class ApplyAlter
     catch ( SAXException e )
     {
       throw new ApplyAlterException( "Unable to initialize XML validator", e );
+    }
+    finally
+    {
+      BaseUtil.closeNoThrow( fis, "ApplyAlter" );
     }
   }
 
@@ -303,13 +311,14 @@ public class ApplyAlter
   protected Alter fromFile( String file )
       throws ApplyAlterException
   {
+    FileInputStream i = null;
     try
     {
       if ( validator != null )
       {
         validator.validate( new StreamSource( new FileInputStream( file ) ) );
       }
-      FileInputStream i = new FileInputStream( file );
+      i = new FileInputStream( file );
       return newAlter( file, i );
     }
     catch ( FileNotFoundException e )
@@ -323,6 +332,10 @@ public class ApplyAlter
     catch ( IOException e )
     {
       throw new ApplyAlterException( "I/O exception during XML file validation " + file, e );
+    }
+    finally
+    {
+      BaseUtil.closeNoThrow( i, "fromFile" );
     }
   }
 
@@ -702,10 +715,11 @@ public class ApplyAlter
   public Set<String> getApplyAlterLog(Connection c) {
     Set<String> result = new HashSet<String>();
     PreparedStatement s = null;
+    ResultSet r = null;
     try
     {
       s = c.prepareStatement( "select distinct id from wasg2.applyalter_log" );
-      ResultSet r = s.executeQuery();
+      r = s.executeQuery();
       while ( r.next() )
       {
         result.add( r.getString( 1 ) );
@@ -717,7 +731,7 @@ public class ApplyAlter
     }
     finally
     {
-      DbUtils.close( s );
+      DbUtils.close( s, r );
     }
     return result;
   }

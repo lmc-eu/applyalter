@@ -106,7 +106,7 @@ public class MigrationProc extends AbstractMigration
 
   //-----------------------------------------------------------------------------------------------------------------
 
-  public String getSQLStatement()
+  public String getSqlStatement()
   {
     return isFt() ? "call g2fn.blockupdate_ft(?,?,?,?,?,?,?)" : "call g2fn.blockupdate(?,?,?,?)";
   }
@@ -115,7 +115,7 @@ public class MigrationProc extends AbstractMigration
   protected PreparedStatement makePreparedStatement(Connection con, RunContext ctx)
       throws SQLException
   {
-    PreparedStatement s = con.prepareStatement(getSQLStatement());
+    PreparedStatement s = con.prepareStatement(getSqlStatement());
     int i = 1;
     s.setString(i++, logid);
     s.setLong(i++, maxblkcnt);
@@ -211,7 +211,7 @@ public class MigrationProc extends AbstractMigration
   {
     StringBuilder b = new StringBuilder();
     b.append(this.getClass().getSimpleName()).append(": ");
-    b.append(getSQLStatement()).append(" ").append(statement).append("\n");
+    b.append(getSqlStatement()).append(" ").append(statement).append("\n");
     b.append("logid: ").append(logid).append("\n");
     b.append("maxblkcnt: ").append(maxblkcnt).append("\n");
     b.append("description: ").append(description).append("\n");
