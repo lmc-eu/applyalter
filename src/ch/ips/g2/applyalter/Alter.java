@@ -58,7 +58,7 @@ public class Alter
     addStatements(statements);
   }
   
-  public void addStatements(AlterStatement... statements)
+  private void addStatements( AlterStatement... statements )
   {
     for (AlterStatement i: statements)
       this.statements.add(i);
