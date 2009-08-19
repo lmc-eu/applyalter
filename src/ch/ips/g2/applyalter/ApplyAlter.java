@@ -791,9 +791,9 @@ public class ApplyAlter
       }
 
       rnmd = RunMode.getRunMode( cmd.getOptionValue( RUN_MODE ), rnmd );
-      ignfail = Boolean.valueOf( cmd.hasOption( IGNORE_FAILURES ) );
-      printstacktrace = Boolean.valueOf( cmd.hasOption( PRINTSTACKTRACE ) );
-      validateXml = Boolean.valueOf( !cmd.hasOption( NO_VALIDATE_XML ));
+      ignfail = cmd.hasOption( IGNORE_FAILURES );
+      printstacktrace = cmd.hasOption( PRINTSTACKTRACE );
+      validateXml = !cmd.hasOption( NO_VALIDATE_XML );
 
       String[] a = cmd.getArgs();
       if ( a.length < 1 )

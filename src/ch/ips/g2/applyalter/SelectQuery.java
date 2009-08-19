@@ -1,11 +1,11 @@
 package ch.ips.g2.applyalter;
 
-import com.thoughtworks.xstream.annotations.XStreamAlias;
-
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
+
+import com.thoughtworks.xstream.annotations.XStreamAlias;
 
 /**
  * SQL select query in Alter script
@@ -59,7 +59,7 @@ public class SelectQuery extends AbstractStatement
       while ( rs.next() )
       {
         count++;
-        StringBuffer out = new StringBuffer( "" );
+        StringBuilder out = new StringBuilder();
         for ( int column = 1; column <= columns; column++ )
         {
           out.append( rs.getString( column ) );
