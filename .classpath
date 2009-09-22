@@ -2,7 +2,6 @@
 <classpath>
 	<classpathentry kind="src" path="src"/>
 	<classpathentry kind="src" path="/base"/>
-	<classpathentry kind="src" path="/G2Log"/>
 	<classpathentry kind="lib" path="/lmcEar/annotations.jar"/>
 	<classpathentry kind="lib" path="/lmcEar/commons-cli-1.0.jar"/>
 	<classpathentry kind="lib" path="/lmcEar/jsr305.jar"/>
