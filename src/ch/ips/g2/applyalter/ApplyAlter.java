@@ -77,6 +77,10 @@ public class ApplyAlter
    */
   public static final String NO_VALIDATE_XML = "n";
   /**
+   * Ignore failures parameter name
+   */
+  public static final String NO_LOG_TABLE = "L";
+  /**
    * Suffix for zip file
    */
   public static final String ZIP_SUFFIX = ".zip";
@@ -103,11 +107,22 @@ public class ApplyAlter
   protected XStream xstream = new XStream();
   protected String username;
   protected Multimap<String,String> unapplied = new ArrayListMultimap<String,String>();
+  private boolean logTableUsed;
 
 
   protected RunMode getRunMode()
   {
     return runContext.getRunMode();
+  }
+
+  public boolean isLogTableUsed()
+  {
+    return logTableUsed;
+  }
+
+  public void setLogTableUsed( boolean logTableUsed )
+  {
+    this.logTableUsed = logTableUsed;
   }
 
   /**
@@ -117,13 +132,15 @@ public class ApplyAlter
    * @param runContext execution context, providing methods to output the results and report the processing steps.
    * @param ignorefailures
    * @param username
-   * @param validateXml 
+   * @param validateXml
    */
   @SuppressWarnings("unchecked")
-  public ApplyAlter( String dbconfigfile, RunContext runContext, boolean ignorefailures, String username, boolean validateXml )
+  public ApplyAlter( String dbconfigfile, RunContext runContext, boolean ignorefailures, String username,
+      boolean validateXml, boolean useLogTable )
   {
     this.runContext = runContext;
     this.username = username;
+    this.setLogTableUsed( useLogTable );
 
     xstream.processAnnotations( new Class[]{
         Alter.class,
@@ -231,6 +248,12 @@ public class ApplyAlter
    */
   protected void applyInternal()
   {
+    if ( !isLogTableUsed() )
+    {
+      //no internal scripts needed
+      return;
+    }
+
     final RunContext backupCtx = this.runContext;
 
     Alter[] internalAlters = new Alter[INTERNAL_SCRIPTS.length];
@@ -598,7 +621,7 @@ public class ApplyAlter
         throw new ApplyAlterException( e.getMessage(), e );
       }
     }
-    
+
     try
     {
       s.execute( db, runContext );
@@ -681,7 +704,7 @@ public class ApplyAlter
   {
     runContext.report( ALTER, "Alter %s on %s took %s ms", id, dbid, time);
 
-    if ( runContext.getRunMode() != RunMode.SHARP )
+    if ( runContext.getRunMode() != RunMode.SHARP || !isLogTableUsed() )
     {
       //do not write to database
       return;
@@ -769,10 +792,12 @@ public class ApplyAlter
     o.addOption( RUN_MODE, true, "runmode, possible values: " + Arrays.toString( RunMode.values() ) );
     o.addOption( USER_NAME, true, "user name" );
     o.addOption( NO_VALIDATE_XML, false, "disables XML file with alter script validation" );
+    o.addOption( NO_LOG_TABLE, false, "disables log table" );
 
     boolean ignfail = false;
     boolean printstacktrace = false;
     boolean validateXml = true;
+    boolean useLogTable;
     RunMode rnmd = RunMode.SHARP;
 
     try
@@ -794,6 +819,7 @@ public class ApplyAlter
       ignfail = cmd.hasOption( IGNORE_FAILURES );
       printstacktrace = cmd.hasOption( PRINTSTACKTRACE );
       validateXml = !cmd.hasOption( NO_VALIDATE_XML );
+      useLogTable = !cmd.hasOption( NO_LOG_TABLE );
 
       String[] a = cmd.getArgs();
       if ( a.length < 1 )
@@ -814,7 +840,7 @@ public class ApplyAlter
       rctx.report( MAIN, "ignore failures: %s", ignfail );
       rctx.report( MAIN, "print stacktrace: %s", printstacktrace );
 
-      ApplyAlter applyAlter = new ApplyAlter( a[0], rctx, ignfail, username, validateXml );
+      ApplyAlter applyAlter = new ApplyAlter( a[0], rctx, ignfail, username, validateXml, useLogTable );
       applyAlter.applyInternal();
       applyAlter.apply(validateXml, param);
       if ( RunMode.LOOK.equals( rnmd ) )
