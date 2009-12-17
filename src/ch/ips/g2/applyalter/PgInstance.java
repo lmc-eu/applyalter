@@ -1,6 +1,7 @@
 package ch.ips.g2.applyalter;
 
 import java.sql.SQLException;
+import java.sql.Connection;
 
 import com.thoughtworks.xstream.annotations.XStreamAlias;
 
@@ -15,6 +16,8 @@ public class PgInstance extends DbInstance
   protected static final String DB_DRIVER = "org.postgresql.Driver";
   
   public static final String ENGINE = "Postgresql";
+
+  public String role;
 
   protected static void initDriver()
   {
@@ -38,6 +41,16 @@ public class PgInstance extends DbInstance
     super( id, type, host, port, db, user, pass );
   }
 
+
+  public String getRole()
+  {
+    return role;
+  }
+
+  public void setRole( String role )
+  {
+    this.role = role;
+  }
 
   /**
    * Get url for connecting <code>jdbc:postgresql://...</code>
@@ -86,6 +99,25 @@ public class PgInstance extends DbInstance
     } catch (SQLException e) {
       throw new ApplyAlterException("Can not set schema " + schema, e);
     }
+  }
+
+  @Override
+  protected Connection connect( String url )
+      throws SQLException
+  {
+    final Connection con = super.connect( url );
+    if ( getRole() != null )
+    {
+      try
+      {
+        DbUtils.executeUpdate( con, "set role to " + getRole() );
+      }
+      catch (SQLException e)
+      {
+        throw new ApplyAlterException( "Can not set role to: " + getRole(), e );
+      }
+    }
+    return con;
   }
 
 }
