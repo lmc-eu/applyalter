@@ -146,6 +146,7 @@ public class ApplyAlter
         Alter.class,
         SQL.class,
         SelectQuery.class,
+        DynamicQuery.class,
         Comment.class,
         MigrationProc.class,
         MigrationIdRange.class,

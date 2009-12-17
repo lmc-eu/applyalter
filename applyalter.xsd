@@ -16,6 +16,7 @@
         <xs:choice minOccurs="0" maxOccurs="unbounded">
           <xs:element ref="sql" />
           <xs:element ref="select" />
+          <xs:element ref="dynamic" />
           <xs:element ref="comment" />
           <xs:element ref="migration" />
           <xs:element ref="migration-id-list" />
@@ -98,6 +99,14 @@
   <xs:element name="sql" type="abstractstatement">
     <xs:annotation>
       <xs:documentation>Běžný SQL příkaz, který se provede. Příkaz je právě jeden a není nijak speciálně označen (tj. není ukončen středníkem). Může však obsahovat složitější kód jako je vytvoření funkce či procedury, aniž by bylo nutno nějak ošetřovat středníky.</xs:documentation>
+    </xs:annotation>
+  </xs:element>
+
+  <xs:element name="dynamic" type="abstractstatement">
+    <xs:annotation>
+      <xs:documentation>Dotaz typu SELECT, který se provede a který musí v prvním sloupci vrátit jiné dotazy - ty se pak provedou.
+          Užitečné pro automatické převytvoření triggerů, procedur a funkcí (DB2 metadata obsahují kompletní text pro vytvoření).
+      </xs:documentation>
     </xs:annotation>
   </xs:element>
 
