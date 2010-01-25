@@ -106,7 +106,7 @@ public class ApplyAlter
 
   protected XStream xstream = new XStream();
   protected String username;
-  protected Multimap<String,String> unapplied = new ArrayListMultimap<String,String>();
+  protected Multimap<String,String> unapplied = ArrayListMultimap.create();
   private boolean logTableUsed;
 
 
@@ -765,7 +765,7 @@ public class ApplyAlter
    * @return concatenated list ready to print
    */
   public String getUnappliedAlters() {
-    Multimap<String,String> un = new ArrayListMultimap<String,String>(unapplied);
+    Multimap<String,String> un = ArrayListMultimap.create(unapplied);
     StringBuilder s = new StringBuilder();
     for (DbInstance d : db.getEntries() ) {
       Collection<String> c = un.get( d.getId() );
