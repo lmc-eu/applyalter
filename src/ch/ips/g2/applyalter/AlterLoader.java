@@ -201,8 +201,7 @@ public class AlterLoader
       {
         AlterSource source = new ZipAlterSource( z, entry, allFiles );
 
-        String file = z.getName() + "!" + entry.getName();
-        Alter alterscript = parseScriptFile( file, source );
+        Alter alterscript = parseScriptFile( entry.getName(), source );
         a.add( alterscript );
       }
 
