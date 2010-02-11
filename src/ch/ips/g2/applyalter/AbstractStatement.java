@@ -128,6 +128,9 @@ public abstract class AbstractStatement implements AlterStatement
   protected PreparedStatement prepareStatement( Connection dbConn, String osql, Map<String, byte[]> datafiles )
       throws SQLException
   {
+    if ( datafiles == null )
+      return dbConn.prepareStatement( osql );
+
     Matcher m = REGEX_PLACEHOLDER_DATAFILE.matcher( osql );
     final String sql;
     final List<Object> params;
