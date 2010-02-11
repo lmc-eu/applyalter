@@ -230,6 +230,7 @@ public class ApplyAlter
     }
     catch ( Exception e )
     {
+      //ignore exception
       runContext.report( MAIN, "Cannot read applyalter.xsd from file, trying read it from applyalter.jar" );
     }
     if ( schema == null )
@@ -279,16 +280,14 @@ public class ApplyAlter
    * Apply alter scripts (.xml/.zip) to all or selected database instances
    * @param alterFiles files with XML serialized alter scripts
    * @throws ApplyAlterException if one of files is not .xml or .zip, or alter application fails
-   * @see #apply(Alter...)
    */
   public void apply( boolean validateXml, String... alterFiles )
       throws ApplyAlterException
   {
     List<Alter> a = new ArrayList<Alter>( alterFiles.length );
 
-    for ( int i = 0; i < alterFiles.length; i++ )
+    for ( String f : alterFiles )
     {
-      String f = alterFiles[i];
       if ( f.endsWith( XML_SUFFIX ) )
       {
         a.add( fromFile( f ) );
@@ -664,6 +663,7 @@ public class ApplyAlter
         }
         catch (SQLException e1)
         {
+          //ignore e1
           throw new ApplyAlterException( e.getMessage(), e );
         }
       }
