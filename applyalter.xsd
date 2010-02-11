@@ -13,6 +13,7 @@
         <xs:element ref="isolation" minOccurs="0" maxOccurs="unbounded" />
         <xs:element ref="checkok" minOccurs="0" maxOccurs="1" />
         <xs:element ref="check" minOccurs="0" maxOccurs="unbounded" />
+        <xs:element ref="datafile" minOccurs="0" maxOccurs="unbounded" />
         <xs:choice minOccurs="0" maxOccurs="unbounded">
           <xs:element ref="sql" />
           <xs:element ref="select" />
@@ -89,6 +90,15 @@
       <xs:enumeration value="RR" />
     </xs:restriction>
   </xs:simpleType>
+
+    <xs:element name="datafile" type="xs:string">
+      <xs:annotation>
+        <xs:documentation>Jméno datového souboru, jehož obsah je možné použít v jednoduchych dotazech (sql, select a dynamic).
+            Soubor musí být ve stejném adresáři (zip souboru) jako alterscript.
+            Syntaxe pro použití se liší pro binární a řetězcové soubory: :BLOB(soubor.bin)  nebo :CLOB(soubor.txt)
+        </xs:documentation>
+      </xs:annotation>
+    </xs:element>
 
   <xs:element name="comment" type="abstractstatement">
     <xs:annotation>

@@ -1,5 +1,6 @@
 package ch.ips.g2.applyalter;
 
+import java.util.Map;
 import com.thoughtworks.xstream.annotations.XStreamAlias;
 
 /**
@@ -20,7 +21,7 @@ public class Comment extends AbstractStatement
     this.statement = statement;
   }
 
-  public void execute( DbInstance dbConn, RunContext mode )
+  public void execute( DbInstance dbConn, RunContext mode, Map<String, byte[]> datafiles )
       throws ApplyAlterException
   {
     //do nothing

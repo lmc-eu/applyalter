@@ -1,9 +1,10 @@
 package ch.ips.g2.applyalter;
+
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
-
+import java.util.Map;
 import com.thoughtworks.xstream.annotations.XStreamAlias;
 import com.thoughtworks.xstream.annotations.XStreamImplicit;
 
@@ -20,7 +21,11 @@ import com.thoughtworks.xstream.annotations.XStreamImplicit;
 public class Alter
 {
   public static final String DEFAULT_SCHEMA = "wasg2";
-  private String id;
+
+  /**
+   * Alter identifier: not serialized, but fulled when loaded.
+   */
+  private transient String id;
 
   /**
    * Engine: when set, alterscript will be ignored for other engines.
@@ -32,8 +37,16 @@ public class Alter
   public String checkok;
   @XStreamImplicit
   public List<Check> checks = new ArrayList<Check>();
-  @XStreamImplicit
+  @XStreamImplicit(itemFieldName = "instance")
   public Set<String> instance = new HashSet<String>();
+
+  @XStreamImplicit(itemFieldName = "datafile")
+  public List<String> datafile;
+  /**
+   * Data files from {@link #datafile}, but loaded into memory. 
+   */
+  transient Map<String, byte[]> _datafiles;
+
   @XStreamImplicit
   public List<AlterStatement> statements = new ArrayList<AlterStatement>();
   

@@ -2,6 +2,7 @@ package ch.ips.g2.applyalter;
 
 import java.sql.SQLException;
 import java.util.Set;
+import java.util.Map;
 
 
 /**
@@ -39,10 +40,11 @@ public interface AlterStatement
    *
    * @param dbConn database connection (ready)
    * @param ctx run context: contains run mode, provides reporting
+   * @param datafiles data files
    * @throws SQLException sql error, provides SQLSTATE and SQLCODE
    * @throws ApplyAlterException preprocessed exception
    */
-  public void execute( DbInstance dbConn, RunContext ctx )
+  public void execute( DbInstance dbConn, RunContext ctx, Map<String, byte[]> datafiles )
       throws SQLException, ApplyAlterException;
 
 

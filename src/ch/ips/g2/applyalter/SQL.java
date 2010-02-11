@@ -5,6 +5,7 @@ import com.thoughtworks.xstream.annotations.XStreamAlias;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.SQLException;
+import java.util.Map;
 
 /**
  * SQL statement in Alter script
@@ -37,7 +38,7 @@ public class SQL extends AbstractStatement
     return getStatement();
   }
 
-  public void execute( DbInstance dbConn, RunContext ctx )
+  public void execute( DbInstance dbConn, RunContext ctx, Map<String, byte[]> datafiles )
       throws ApplyAlterException, SQLException
   {
     Connection connection = dbConn.getConnection();
@@ -46,7 +47,7 @@ public class SQL extends AbstractStatement
     PreparedStatement st = null;
     try
     {
-      st = connection.prepareStatement( sql );
+      st = prepareStatement( connection, sql, datafiles );
       int rows = 0;
       if( !st.execute() ) // allows "with ... select ... update ..."
       {

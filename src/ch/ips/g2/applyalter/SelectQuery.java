@@ -4,6 +4,7 @@ import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.util.Map;
 
 import com.thoughtworks.xstream.annotations.XStreamAlias;
 
@@ -43,7 +44,7 @@ public class SelectQuery extends AbstractStatement
     return this.getStatement();
   }
 
-  public void execute( DbInstance dbConn, RunContext ctx )
+  public void execute( DbInstance dbConn, RunContext ctx, Map<String, byte[]> datafiles )
   throws ApplyAlterException, SQLException
   {
     Connection connection = dbConn.getConnection();
@@ -52,10 +53,10 @@ public class SelectQuery extends AbstractStatement
     ResultSet rs = null;
     try
     {
-      st = connection.prepareStatement( sql );
-      int count = 0;
+      st = prepareStatement( connection, sql, datafiles );
       rs = st.executeQuery();
       int columns = rs.getMetaData().getColumnCount();
+      int count = 0;
       while ( rs.next() )
       {
         count++;

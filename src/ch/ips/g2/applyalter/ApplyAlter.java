@@ -1,11 +1,7 @@
 package ch.ips.g2.applyalter;
 
-import static ch.ips.g2.applyalter.ReportLevel.ALTER;
-import static ch.ips.g2.applyalter.ReportLevel.DETAIL;
-import static ch.ips.g2.applyalter.ReportLevel.MAIN;
-
 import ch.ips.base.BaseUtil;
-
+import static ch.ips.g2.applyalter.ReportLevel.*;
 import org.apache.commons.cli.BasicParser;
 import org.apache.commons.cli.CommandLine;
 import org.apache.commons.cli.CommandLineParser;
@@ -13,32 +9,23 @@ import org.apache.commons.cli.HelpFormatter;
 import org.apache.commons.cli.Options;
 import org.apache.commons.cli.UnrecognizedOptionException;
 import org.xml.sax.SAXException;
-
 import javax.xml.transform.stream.StreamSource;
 import javax.xml.validation.Schema;
 import javax.xml.validation.SchemaFactory;
 import javax.xml.validation.Validator;
-
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
-import java.io.IOException;
-import java.io.InputStream;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Savepoint;
-import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
-import java.util.Enumeration;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
-import java.util.zip.ZipEntry;
-import java.util.zip.ZipFile;
-
 import com.google.common.collect.ArrayListMultimap;
 import com.google.common.collect.Multimap;
 import com.thoughtworks.xstream.XStream;
@@ -257,12 +244,13 @@ public class ApplyAlter
     }
 
     final RunContext backupCtx = this.runContext;
+    AlterLoader alterLoader = new AlterLoader( xstream, validator );
 
     Alter[] internalAlters = new Alter[INTERNAL_SCRIPTS.length];
     for ( int i = 0; i < INTERNAL_SCRIPTS.length; i++ )
     {
       String alterName = INTERNAL_SCRIPTS[i];
-      internalAlters[i] = newAlter( alterName, getClass().getResourceAsStream( alterName ) );
+      internalAlters[i] = alterLoader.newAlter( alterName, getClass().getResourceAsStream( alterName ) );
     }
 
     //nothing should be shown to user
@@ -284,134 +272,10 @@ public class ApplyAlter
   public void apply( boolean validateXml, String... alterFiles )
       throws ApplyAlterException
   {
-    List<Alter> a = new ArrayList<Alter>( alterFiles.length );
-
-    for ( String f : alterFiles )
-    {
-      if ( f.endsWith( XML_SUFFIX ) )
-      {
-        a.add( fromFile( f ) );
-      }
-      else if ( f.endsWith( ZIP_SUFFIX ) )
-      {
-        a.addAll( fromZip( f ) );
-      }
-      else
-      {
-        throw new ApplyAlterException( "Unknown filetype " + f );
-      }
-    }
-
+    AlterLoader ldr = new AlterLoader( xstream, validator );
+    List<Alter> a = ldr.loadAlters( alterFiles );
     // actually apply them
     apply( a.toArray( new Alter[a.size()] ) );
-  }
-
-  /**
-   * Create new instance from XML serialized form
-   * @param file identifier for {@link Alter#setId(String)}
-   * @param i input stream to read from
-   * @return new instance
-   */
-  public Alter newAlter(String file, InputStream i)
-  {
-    Alter a = null;
-    try {
-      a = (Alter) xstream.fromXML(i);
-    } catch (XStreamException e) {
-      throw new ApplyAlterException("Unable to deserialize Alter from file " + file, e);
-    }
-    // get file name part
-    a.setId(new File(file).getName());
-    return a;
-  }
-
-  /**
-   * Create Alter instance from XML serialized from file
-   * @param file XML serialized Alter
-   * @return new Alter instance
-   * @throws ApplyAlterException if file can not be found
-   */
-  protected Alter fromFile( String file )
-      throws ApplyAlterException
-  {
-    FileInputStream i = null;
-    try
-    {
-      if ( validator != null )
-      {
-        validator.validate( new StreamSource( new FileInputStream( file ) ) );
-      }
-      i = new FileInputStream( file );
-      return newAlter( file, i );
-    }
-    catch ( FileNotFoundException e )
-    {
-      throw new ApplyAlterException( "File not found " + file, e );
-    }
-    catch ( SAXException e )
-    {
-      throw new ApplyAlterException( "Can not validate file " + file, e );
-    }
-    catch ( IOException e )
-    {
-      throw new ApplyAlterException( "I/O exception during XML file validation " + file, e );
-    }
-    finally
-    {
-      BaseUtil.closeNoThrow( i, "fromFile" );
-    }
-  }
-
-  /**
-   * Create a list of Alter instances from XML serialized from files stored in .zip.
-   * List is sorted using {@link ZipEntryNameComparator}.
-   * @param zipfile zip file containing XML files
-   * @return list of new Alter instances
-   * @throws ApplyAlterException if error occurs during zip file processing
-   */
-  protected List<Alter> fromZip( String zipfile )
-  {
-    String id = null;
-    try
-    {
-      ZipFile z = new ZipFile( zipfile );
-      Enumeration<? extends ZipEntry> e = z.entries();
-      List<ZipEntry> l = new ArrayList<ZipEntry>();
-
-      while ( e.hasMoreElements() )
-      {
-        ZipEntry i = e.nextElement();
-        if ( i.isDirectory() || !i.getName().endsWith( ApplyAlter.XML_SUFFIX ) )
-        {
-          continue;
-        }
-        l.add( i );
-      }
-
-      List<Alter> a = new ArrayList<Alter>( z.size() );
-      ZipEntry[] t = l.toArray( new ZipEntry[l.size()] );
-      Arrays.sort( t, new ZipEntryNameComparator() );
-      for ( ZipEntry i : t )
-      {
-        id = i.getName();
-        InputStream s = z.getInputStream( i );
-        if ( validator != null )
-        {
-          validator.validate( new StreamSource( z.getInputStream( i ) ) );
-        }
-        a.add( newAlter( id, s ) );
-      }
-
-      return a;
-    }
-    catch ( IOException e )
-    {
-      throw new ApplyAlterException( "Error reading zip file " + zipfile, e );
-    }
-    catch ( SAXException e )
-    {
-      throw new ApplyAlterException( "Can not validate file item in zip file: " + id, e );
-    }
   }
 
   /**
@@ -575,7 +439,7 @@ public class ApplyAlter
             if ( RunMode.PRINT.equals( getRunMode() ) )
               continue;
 
-            executeStatement( d, s );
+            executeStatement( d, a, s );
           }
           long time = System.currentTimeMillis() - start;
           savelog( c, dbid, a.getId(), time );
@@ -602,10 +466,10 @@ public class ApplyAlter
    * Execute statement and handle errors (ignoge if configured so).
    *
    * @param db database instance
-   * @param s statement
-   * @throws ApplyAlterException statement failed and the error is not configured to be ignored
+   * @param a the alterscript
+   * @param s statement  @throws ApplyAlterException statement failed and the error is not configured to be ignored
    */
-  private void executeStatement( DbInstance db, AlterStatement s )
+  private void executeStatement( DbInstance db, Alter a, AlterStatement s )
       throws ApplyAlterException
   {
     Savepoint savepoint = null;
@@ -624,7 +488,7 @@ public class ApplyAlter
 
     try
     {
-      s.execute( db, runContext );
+      s.execute( db, runContext, a._datafiles );
     }
     catch (ApplyAlterException e)
     {

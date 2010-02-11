@@ -7,6 +7,7 @@ import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.util.Map;
 
 /**
  * Special migration for data that cannot fit into one transaction. This variant use ID range steps:
@@ -129,7 +130,7 @@ public class MigrationIdRange extends AbstractMigration
   }
 
 
-  public void execute( DbInstance dbConn, RunContext ctx )
+  public void execute( DbInstance dbConn, RunContext ctx, Map<String, byte[]> datafiles )
       throws ApplyAlterException, SQLException
   {
     Connection connection = dbConn.getConnection();

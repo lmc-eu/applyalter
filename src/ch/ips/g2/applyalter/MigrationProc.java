@@ -4,6 +4,7 @@ import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.util.Map;
 
 import com.thoughtworks.xstream.annotations.XStreamAlias;
 
@@ -130,7 +131,7 @@ public class MigrationProc extends AbstractMigration
     return s;
   }
 
-  public void execute( DbInstance dbConn, RunContext mode )
+  public void execute( DbInstance dbConn, RunContext mode, Map<String, byte[]> datafiles )
       throws ApplyAlterException, SQLException
   {
     Connection connection = dbConn.getConnection();

@@ -7,6 +7,7 @@ import com.thoughtworks.xstream.annotations.XStreamAlias;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.SQLException;
+import java.util.Map;
 
 /**
  * General migration: used in cases where full range splitting would be too ineffective.
@@ -156,7 +157,7 @@ public class MigrationIdList extends AbstractMigration
 
   //-----------------------------------------------------------------------------------------------------------------
 
-  public void execute( DbInstance dbConn, RunContext ctx )
+  public void execute( DbInstance dbConn, RunContext ctx, Map<String, byte[]> datafiles )
       throws ApplyAlterException, SQLException
   {
     checkParameters();

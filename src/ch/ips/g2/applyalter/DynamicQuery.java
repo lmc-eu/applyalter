@@ -6,6 +6,7 @@ import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.util.List;
 import java.util.ArrayList;
+import java.util.Map;
 import com.thoughtworks.xstream.annotations.XStreamAlias;
 
 /**
@@ -18,17 +19,18 @@ import com.thoughtworks.xstream.annotations.XStreamAlias;
 public class DynamicQuery extends AbstractStatement
 {
 
-  public void execute( DbInstance dbConn, RunContext ctx )
+  public void execute( DbInstance dbConn, RunContext ctx, Map<String, byte[]> datafiles )
       throws ApplyAlterException, SQLException
   {
     Connection connection = dbConn.getConnection();
-    List<String> queries = generateQueries( ctx, connection );
+    List<String> queries = generateQueries( ctx, connection, datafiles );
 
     for ( String sql : queries )
     {
       PreparedStatement st = null;
       try
       {
+        //important: datafile expanding is NOT done here!
         ctx.report( ReportLevel.STATEMENT_STEP, "executing dynamic statement: %s%n", sql );
         st = connection.prepareStatement( sql );
         int rows = 0;
@@ -46,7 +48,7 @@ public class DynamicQuery extends AbstractStatement
 
   }
 
-  private List<String> generateQueries( RunContext ctx, Connection connection )
+  private List<String> generateQueries( RunContext ctx, Connection connection, Map<String, byte[]> datafiles )
       throws SQLException
   {
     String sql = getStatement().trim();
@@ -55,7 +57,7 @@ public class DynamicQuery extends AbstractStatement
     ResultSet rs = null;
     try
     {
-      st = connection.prepareStatement( sql );
+      st = prepareStatement( connection, sql, datafiles );
       int rowIdx = 0;
       rs = st.executeQuery();
       while ( rs.next() )

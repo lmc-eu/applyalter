@@ -4,6 +4,16 @@ import com.thoughtworks.xstream.annotations.XStreamAlias;
 import com.thoughtworks.xstream.annotations.XStreamImplicit;
 
 import java.util.Set;
+import java.util.Map;
+import java.util.List;
+import java.util.Collections;
+import java.util.ArrayList;
+import java.util.regex.Pattern;
+import java.util.regex.Matcher;
+import java.sql.PreparedStatement;
+import java.sql.Connection;
+import java.sql.SQLException;
+import java.io.UnsupportedEncodingException;
 
 public abstract class AbstractStatement implements AlterStatement
 {
@@ -37,12 +47,12 @@ public abstract class AbstractStatement implements AlterStatement
     return canfail;
   }
 
-  public void setCanfail(boolean canfail)
+  public void setCanfail( boolean canfail )
   {
     this.canfail = canfail;
   }
 
-  public void setStatement(String statement)
+  public void setStatement( String statement )
   {
     this.statement = statement;
   }
@@ -104,7 +114,79 @@ public abstract class AbstractStatement implements AlterStatement
   {
     return this.getClass().getSimpleName() + ": " + statement;
   }
-  
-  
+
+  //-------------------------------------------------------------------------------------------------------------------
+
+  protected static final Pattern REGEX_PLACEHOLDER_DATAFILE = Pattern.compile(
+      ":(blob|clob)\\(([^)\\s]+)\\)",
+      Pattern.CASE_INSENSITIVE
+  );
+
+  /**
+   * Prepare simple parameterless SQL statement, replacacing special placeholders by datafile LOBs.
+   */
+  protected PreparedStatement prepareStatement( Connection dbConn, String osql, Map<String, byte[]> datafiles )
+      throws SQLException
+  {
+    Matcher m = REGEX_PLACEHOLDER_DATAFILE.matcher( osql );
+    final String sql;
+    final List<Object> params;
+    if ( m.find() )
+    {
+      params = new ArrayList<Object>();
+      StringBuffer sb = new StringBuffer();
+      do
+      {
+        m.appendReplacement( sb, "?" );
+
+        Object dataObject = getParamObj( datafiles, m.group( 1 ), m.group( 2 ) );
+        params.add( dataObject );
+
+      } while ( m.find() );
+      m.appendTail( sb );
+      sql = sb.toString();
+    }
+    else
+    {
+      //no placeholders
+      sql = osql;
+      params = Collections.emptyList();
+    }
+
+    PreparedStatement ps = dbConn.prepareStatement( sql );
+    for ( int idx = 0; idx < params.size(); idx++ )
+    {
+      Object param = params.get( idx );
+      ps.setObject( idx + 1, param );
+    }
+    return ps;
+  }
+
+  private Object getParamObj( Map<String, byte[]> datafiles, String paramType, String paramName )
+  {
+    Object dataObject;
+    byte[] data = datafiles.get( paramName );
+    if ( data == null )
+    {
+      throw new ApplyAlterException( "invalid datafile name: " + paramName );
+    }
+    //blob or clob?
+    if ( paramType.toLowerCase().startsWith( "b" ) )
+    {
+      dataObject = data;
+    }
+    else
+    {
+      try
+      {
+        dataObject = new String( data, "UTF8" );
+      }
+      catch (UnsupportedEncodingException e)
+      {
+        throw new ApplyAlterException( e );
+      }
+    }
+    return dataObject;
+  }
 
 }
