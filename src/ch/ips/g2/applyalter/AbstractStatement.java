@@ -138,15 +138,25 @@ public abstract class AbstractStatement implements AlterStatement
     {
       params = new ArrayList<Object>();
       StringBuffer sb = new StringBuffer();
+      int lastAppend = 0;
       do
       {
-        m.appendReplacement( sb, "?" );
-
         Object dataObject = getParamObj( datafiles, m.group( 1 ), m.group( 2 ) );
-        params.add( dataObject );
+        if ( dataObject == null )
+        {
+          //just append without changes
+          sb.append( osql, lastAppend, m.end() );
+        }
+        else
+        {
+          sb.append( osql, lastAppend, m.start() );
+          sb.append( "?" );
+          params.add( dataObject );
+        }
+        lastAppend = m.end();
 
       } while ( m.find() );
-      m.appendTail( sb );
+      sb.append( osql, lastAppend, osql.length() );
       sql = sb.toString();
     }
     else
@@ -171,7 +181,7 @@ public abstract class AbstractStatement implements AlterStatement
     byte[] data = datafiles.get( paramName );
     if ( data == null )
     {
-      throw new ApplyAlterException( "invalid datafile name: " + paramName );
+      return null;
     }
     //blob or clob?
     if ( paramType.toLowerCase().startsWith( "b" ) )
