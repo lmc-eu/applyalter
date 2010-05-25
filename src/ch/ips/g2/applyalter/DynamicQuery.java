@@ -57,7 +57,7 @@ public class DynamicQuery extends AbstractStatement
     ResultSet rs = null;
     try
     {
-      st = prepareStatement( connection, sql, datafiles );
+      st = prepareStatement( connection, sql, datafiles, 0 );
       int rowIdx = 0;
       rs = st.executeQuery();
       while ( rs.next() )

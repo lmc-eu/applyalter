@@ -7,6 +7,7 @@
 	<classpathentry kind="lib" path="/lmcEar/jsr305.jar"/>
 	<classpathentry kind="lib" path="/lmcEar/google-collect-1.0.jar"/>
 	<classpathentry kind="lib" path="/lmcEar/xstream-1.3.jar"/>
+	<classpathentry kind="lib" path="/lmcEar/opencsv.jar"/>
 	<classpathentry kind="con" path="org.eclipse.jdt.launching.JRE_CONTAINER"/>
 	<classpathentry kind="output" path="classes"/>
 </classpath>

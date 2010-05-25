@@ -115,6 +115,7 @@ public abstract class AbstractStatement implements AlterStatement
     return this.getClass().getSimpleName() + ": " + statement;
   }
 
+  //-----------------------------------------------------------------------------------------------------------------
   //-------------------------------------------------------------------------------------------------------------------
 
   protected static final Pattern REGEX_PLACEHOLDER_DATAFILE = Pattern.compile(
@@ -125,7 +126,8 @@ public abstract class AbstractStatement implements AlterStatement
   /**
    * Prepare simple parameterless SQL statement, replacacing special placeholders by datafile LOBs.
    */
-  protected PreparedStatement prepareStatement( Connection dbConn, String osql, Map<String, byte[]> datafiles )
+  protected PreparedStatement prepareStatement( Connection dbConn, String osql, Map<String, byte[]> datafiles,
+      int paramOffset )
       throws SQLException
   {
     if ( datafiles == null )
@@ -170,7 +172,7 @@ public abstract class AbstractStatement implements AlterStatement
     for ( int idx = 0; idx < params.size(); idx++ )
     {
       Object param = params.get( idx );
-      ps.setObject( idx + 1, param );
+      ps.setObject( idx + 1 + paramOffset, param );
     }
     return ps;
   }
@@ -200,6 +202,30 @@ public abstract class AbstractStatement implements AlterStatement
       }
     }
     return dataObject;
+  }
+
+  //-----------------------------------------------------------------------------------------------------------------
+
+  /**
+   * Utility method: commit step if the mode is {@link RunMode#SHARP}, rollback in other modes.
+   * Used in migrations and migration-like statements.
+   *
+   * @param ctx context, used to provide run mode
+   * @param connection database connection to commit/rollback
+   * @throws SQLException error committing/rollbacking
+   */
+  protected void commitStep( RunContext ctx, Connection connection )
+      throws SQLException
+  {
+    //the most important thing: commit
+    switch ( ctx.getRunMode() )
+    {
+      case SHARP:
+        connection.commit();
+        break;
+      default:
+        connection.rollback();
+    }
   }
 
 }

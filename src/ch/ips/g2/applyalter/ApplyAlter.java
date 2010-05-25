@@ -132,6 +132,7 @@ public class ApplyAlter
     xstream.processAnnotations( new Class[]{
         Alter.class,
         SQL.class,
+        CSV.class,
         SelectQuery.class,
         DynamicQuery.class,
         Comment.class,

@@ -53,7 +53,7 @@ public class SelectQuery extends AbstractStatement
     ResultSet rs = null;
     try
     {
-      st = prepareStatement( connection, sql, datafiles );
+      st = prepareStatement( connection, sql, datafiles, 0 );
       rs = st.executeQuery();
       int columns = rs.getMetaData().getColumnCount();
       int count = 0;

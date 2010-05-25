@@ -81,29 +81,6 @@ public abstract class AbstractMigration extends AbstractStatement
   //-----------------------------------------------------------------------------------------------------------------
   //-----------------------------------------------------------------------------------------------------------------
 
-  /**
-   * Utility method: commit step if the mode is {@link RunMode#SHARP}, rollback in other modes.
-   * @param ctx context, used to provide run mode
-   * @param connection database connection to commit/rollback
-   * @throws SQLException error committing/rollbacking
-   */
-  protected void commitStep( RunContext ctx, Connection connection )
-      throws SQLException
-  {
-    //the most important thing: commit
-    switch ( ctx.getRunMode() )
-    {
-      case SHARP:
-        connection.commit();
-        break;
-      default:
-        connection.rollback();
-    }
-  }
-
-  //-----------------------------------------------------------------------------------------------------------------
-  //-----------------------------------------------------------------------------------------------------------------
-
   protected static class ProcessedQuery
   {
     final String statement;

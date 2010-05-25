@@ -47,7 +47,7 @@ public class SQL extends AbstractStatement
     PreparedStatement st = null;
     try
     {
-      st = prepareStatement( connection, sql, datafiles );
+      st = prepareStatement( connection, sql, datafiles, 0 );
       int rows = 0;
       if( !st.execute() ) // allows "with ... select ... update ..."
       {

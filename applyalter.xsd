@@ -22,6 +22,7 @@
           <xs:element ref="migration" />
           <xs:element ref="migration-id-list" />
           <xs:element ref="migration-id-range" />
+          <xs:element ref="csv" />
         </xs:choice>
       </xs:sequence>
     </xs:complexType>
@@ -93,7 +94,8 @@
 
     <xs:element name="datafile" type="xs:string">
       <xs:annotation>
-        <xs:documentation>Jméno datového souboru, jehož obsah je možné použít v jednoduchych dotazech (sql, select a dynamic).
+        <xs:documentation>Jméno datového souboru, jehož obsah je možné použít v jednoduchych dotazech (sql, select a dynamic)
+            a v CSV importu.
             Soubor musí být ve stejném adresáři (zip souboru) jako alterscript.
             Syntaxe pro použití se liší pro binární a řetězcové soubory: :BLOB(soubor.bin)  nebo :CLOB(soubor.txt)
         </xs:documentation>
@@ -125,6 +127,29 @@
       <xs:documentation>Běžný SQL dotaz typu SELECT, který se provede a na výstup se zapíšou záznamy přečtené z databáze. Podobně jako u výše popsaného příkazu sql, i zde nesmí být na konci příkazu uveden středník. Načtené záznamy jsou vypsány na výstup, začátek výpisu začíná levou složenou závorkou, končí pravou složenou závorkou a jednotlivé položky v záznamech jsou od sebe odděleny čárkou (bez mezery!), tj. zpětný parsing načtených dat je poměrně jednoduchý.</xs:documentation>
     </xs:annotation>
   </xs:element>
+
+    <xs:element name="csv">
+      <xs:annotation>
+        <xs:documentation>Import dat z CSV souboru: příkaz se chová podobně jako u typ sql, ale obsahuje otazníky - pro každý sloupec jeden.
+            Příkaz je proveden tolikrát, kolik je v CSV řádek s hodnotami (první řídek je vždy považován za hlavičku).
+            Hodnoty mohou být číselné nebo řetězcové (nejsou podporovány časy).
+            U číselných hodnot je podporován NULL (prázdná buňka na vstupu), u řetězcových nikoliv (prázdná buňka je
+            interpretována jako prázdný řetězec).
+
+            Datový soubor musí být uveden v elementu datafile na nejvyšší úrovni.
+        </xs:documentation>
+      </xs:annotation>
+        <xs:complexType>
+            <xs:complexContent>
+                <xs:extension base="abstractstatement">
+                    <xs:sequence>
+                        <xs:element name="file" type="xs:string" minOccurs="1"/>
+                        <xs:element name="step" type="xs:int" minOccurs="0"/>
+                    </xs:sequence>
+                </xs:extension>
+            </xs:complexContent>
+        </xs:complexType>
+    </xs:element>
 
   <xs:element name="migration">
     <xs:annotation>
