@@ -443,7 +443,7 @@ public class ApplyAlter
             executeStatement( d, a, s );
           }
           long time = System.currentTimeMillis() - start;
-          savelog( c, dbid, a.getId(), time );
+          savelog( d, dbid, a.getId(), time );
 
         }
         catch (ApplyAlterException e)
@@ -561,13 +561,14 @@ public class ApplyAlter
 
   /**
    * Logs successful alter to stdout and applyalter_log table
-   * @param c connection
+   * @param d database instance
    * @param dbid database id
    * @param id alter id
    * @param time alter duration
    */
-  protected void savelog(Connection c, String dbid, String id, long time)
+  protected void savelog( DbInstance d, String dbid, String id, long time)
   {
+    Connection c = d.getConnection();
     runContext.report( ALTER, "Alter %s on %s took %s ms", id, dbid, time);
 
     if ( runContext.getRunMode() != RunMode.SHARP || !isLogTableUsed() )
@@ -579,7 +580,7 @@ public class ApplyAlter
     PreparedStatement s = null;
     try
     {
-      s = c.prepareStatement("insert into wasg2.applyalter_log (username,id,duration) values (?,?,?)");
+      s = c.prepareStatement("insert into "+d.getLogTable()+" (username,id,duration) values (?,?,?)");
       s.setString(1, username);
       s.setString(2, id);
       s.setLong(3, time);
@@ -601,13 +602,14 @@ public class ApplyAlter
    * @return id of alters applied in this database instance connection
    * (non null empty list if problem occurs)
    */
-  public Set<String> getApplyAlterLog(Connection c) {
+  public Set<String> getApplyAlterLog( DbInstance d ) {
     Set<String> result = new HashSet<String>();
+    Connection c = d.getConnection();
     PreparedStatement s = null;
     ResultSet r = null;
     try
     {
-      s = c.prepareStatement( "select distinct id from wasg2.applyalter_log" );
+      s = c.prepareStatement( "select distinct id from "+d.getLogTable() );
       r = s.executeQuery();
       while ( r.next() )
       {
@@ -634,7 +636,7 @@ public class ApplyAlter
     StringBuilder s = new StringBuilder();
     for (DbInstance d : db.getEntries() ) {
       Collection<String> c = un.get( d.getId() );
-      c.removeAll( getApplyAlterLog( d.getConnection() ) );
+      c.removeAll( getApplyAlterLog( d ) );
       if ( !c.isEmpty() ) {
         s.append( d.getId() ).append( ": " );
         for (String i: c)

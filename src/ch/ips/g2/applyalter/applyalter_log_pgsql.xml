@@ -1,11 +1,11 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <alter>
   <engine>Postgresql</engine>
-  <schema>wasg2</schema>
+  <schema>public</schema>
   <check type="table" name="applyalter_log" />
   <sql>
     <statement>
-      create table wasg2.applyalter_log (
+      create table public.applyalter_log (
         at timestamp default now(),
         username varchar(40),
         id varchar(80), duration bigint

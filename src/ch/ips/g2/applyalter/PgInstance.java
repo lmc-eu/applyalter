@@ -120,4 +120,10 @@ public class PgInstance extends DbInstance
     return con;
   }
 
+
+  @Override
+  public String getLogTable()
+  {
+    return "public.applyalter_log";
+  }
 }

@@ -242,6 +242,11 @@ public abstract class DbInstance
     return getDb() != null;
   }
 
+  public String getLogTable()
+  {
+    return "wasg2.applyalter_log";
+  }
+
   //--------------------------------------------------------------------------------------------------
 
   protected static final String[] MDTYPES_TABLE = {"TABLE", "ALIAS"};
