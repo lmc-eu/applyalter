@@ -129,21 +129,7 @@ public class ApplyAlter
     this.username = username;
     this.setLogTableUsed( useLogTable );
 
-    xstream.processAnnotations( new Class[]{
-        Alter.class,
-        SQL.class,
-        CSV.class,
-        SelectQuery.class,
-        DynamicQuery.class,
-        Comment.class,
-        MigrationProc.class,
-        MigrationIdRange.class,
-        MigrationIdList.class,
-        PgInstance.class,
-        OracleInstance.class,
-        Db2Instance.class,
-        Db2Native.class
-    } );
+    xstream.processAnnotations( getXmlClasses() );
     xstream.alias("db", List.class);
 
     FileInputStream fis = null;
@@ -173,6 +159,26 @@ public class ApplyAlter
     {
       BaseUtil.closeNoThrow( fis, "ApplyAlter" );
     }
+  }
+
+  @SuppressWarnings({"deprecation"})
+  private Class[] getXmlClasses()
+  {
+    return new Class[]{
+        Alter.class,
+        SQL.class,
+        CSV.class,
+        SelectQuery.class,
+        DynamicQuery.class,
+        Comment.class,
+        MigrationProc.class,
+        MigrationIdRange.class,
+        MigrationIdList.class,
+        PgInstance.class,
+        OracleInstance.class,
+        Db2Instance.class,
+        Db2Native.class
+    };
   }
 
   /**

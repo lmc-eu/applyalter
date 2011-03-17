@@ -3,3 +3,6 @@
 /classesTC
 /dist
 /tmp
+.idea
+/target
+applyalter.iml
