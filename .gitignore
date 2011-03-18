@@ -1,8 +1,4 @@
 /target
 /classes
-/classesTC
-/dist
-/tmp
 .idea
-/target
-applyalter.iml
+*.iml
