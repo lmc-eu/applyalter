@@ -1,6 +1,6 @@
 package ch.ips.g2.applyalter;
 
-import ch.ips.base.BaseUtil;
+import org.apache.commons.io.IOUtils;
 import org.xml.sax.SAXException;
 import javax.xml.transform.stream.StreamSource;
 import javax.xml.validation.Validator;
@@ -116,7 +116,7 @@ public class AlterLoader
     }
     finally
     {
-      BaseUtil.closeNoThrow( inputStream, "parseScriptFile" );
+      IOUtils.closeQuietly( inputStream );
     }
 
     //load
@@ -129,7 +129,7 @@ public class AlterLoader
         try
         {
           inputStream = source.openDataFile( datafile );
-          byte[] data = BaseUtil.getBytesFormInputStream( inputStream );
+          byte[] data = IOUtils.toByteArray( inputStream );
           alterscript._datafiles.put( datafile, data );
         }
         catch (FileNotFoundException e)
@@ -142,7 +142,7 @@ public class AlterLoader
         }
         finally
         {
-          BaseUtil.closeNoThrow( inputStream, "parseScriptFile" );
+          IOUtils.closeQuietly( inputStream );
         }
       }
     }
