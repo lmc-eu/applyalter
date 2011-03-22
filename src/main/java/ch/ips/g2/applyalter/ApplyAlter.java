@@ -1,6 +1,5 @@
 package ch.ips.g2.applyalter;
 
-import ch.ips.base.BaseUtil;
 import static ch.ips.g2.applyalter.ReportLevel.*;
 import org.apache.commons.cli.BasicParser;
 import org.apache.commons.cli.CommandLine;
@@ -8,6 +7,7 @@ import org.apache.commons.cli.CommandLineParser;
 import org.apache.commons.cli.HelpFormatter;
 import org.apache.commons.cli.Options;
 import org.apache.commons.cli.UnrecognizedOptionException;
+import org.apache.commons.io.IOUtils;
 import org.xml.sax.SAXException;
 import javax.xml.transform.stream.StreamSource;
 import javax.xml.validation.Schema;
@@ -157,7 +157,8 @@ public class ApplyAlter
     }
     finally
     {
-      BaseUtil.closeNoThrow( fis, "ApplyAlter" );
+      IOUtils.closeQuietly( fis );
+//      BaseUtil.closeNoThrow( fis, "ApplyAlter" );
     }
   }
 

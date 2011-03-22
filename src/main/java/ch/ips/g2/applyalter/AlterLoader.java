@@ -117,6 +117,7 @@ public class AlterLoader
     finally
     {
       IOUtils.closeQuietly( inputStream );
+      //BaseUtil.closeNoThrow( inputStream, "parseScriptFile" );
     }
 
     //load
@@ -143,6 +144,10 @@ public class AlterLoader
         finally
         {
           IOUtils.closeQuietly( inputStream );
+<<<<<<< HEAD
+=======
+//          BaseUtil.closeNoThrow( inputStream, "parseScriptFile" );
+>>>>>>> G2:base dependency removed
         }
       }
     }

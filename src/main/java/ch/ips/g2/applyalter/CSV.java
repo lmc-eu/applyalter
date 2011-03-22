@@ -1,6 +1,6 @@
 package ch.ips.g2.applyalter;
 
-import ch.ips.base.BaseUtil;
+import org.apache.commons.lang.StringUtils;
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.io.InputStreamReader;
@@ -150,7 +150,7 @@ public class CSV extends AbstractStatement
         return;
     }
     //in other cases, empty string is considered NULL
-    if ( BaseUtil.isEmpty( paramVal ) )
+    if ( StringUtils.isEmpty( paramVal ) )
     {
       st.setNull( paramIdx, type );
       return;
