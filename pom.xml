@@ -71,12 +71,44 @@
                 </exclusion>
             </exclusions>
         </dependency>
-        
+
     </dependencies>
 
     <!-- ========================================================================================================= -->
 
     <build>
+        <plugins>
+            <plugin>
+                <artifactId>maven-assembly-plugin</artifactId>
+                <configuration>
+                    <descriptorRefs>
+                        <descriptorRef>jar-with-dependencies</descriptorRef>
+                    </descriptorRefs>
+                    <archive>
+                        <manifest>
+                            <mainClass>ch.ips.g2.applyalter.ApplyAlter</mainClass>
+                        </manifest>
+                        <manifestEntries>
+                            <version>${project.version}</version>
+                            <groupId>${project.groupId}</groupId>
+                            <artifactId>${project.artifactId}</artifactId>
+                            <Class-Path>db2java.zip postgresql.jar ojdbc14.jar ojdbc5.jar</Class-Path>
+                        </manifestEntries>
+                    </archive>
+                    <appendAssemblyId>true</appendAssemblyId>
+                    <!-- without classifier, the big jar is used INSTEAD of the original jar -->
+                    <classifier>run</classifier>
+                </configuration>
+                <executions>
+                    <execution>
+                        <phase>package</phase>
+                        <goals>
+                            <goal>single</goal>
+                        </goals>
+                    </execution>
+                </executions>
+            </plugin>
+        </plugins>
     </build>
 
 </project>
