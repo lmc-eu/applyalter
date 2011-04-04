@@ -11,6 +11,9 @@
     <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
     </properties>
 
+    <scm>
+        <developerConnection>scm:git:ssh://git@git.int.lmc.cz/applyalter</developerConnection>
+    </scm>
 
     <!-- ========================================================================================================= -->
 
