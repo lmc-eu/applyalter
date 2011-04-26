@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<alter>
+    <engine>DB2</engine>
+    <schema>wasg2</schema>
+    <check type="index" name="APPLYALTER_IDIDX" />
+    <sql>
+        <statement>
+create index applyalter_ididx on applyalter_log (id)
+        </statement>
+    </sql>
+
+</alter>

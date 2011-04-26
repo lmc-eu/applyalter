@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<alter>
+
+    <engine>Postgresql</engine>
+    <schema>public</schema>
+
+    <check type="index" name="APPLYALTER_IDIDX" table="applyalter_log" />
+
+    <sql>
+        <ignore-sqlstate>42P07</ignore-sqlstate>
+        <statement>
+create index applyalter_ididx on applyalter_log (id)
+        </statement>
+    </sql>
+
+</alter>

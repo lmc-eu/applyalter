@@ -8,7 +8,8 @@
       create table public.applyalter_log (
         at timestamp default now(),
         username varchar(40),
-        id varchar(80), duration bigint
+        id varchar(80), duration bigint,
+        hash char(40),
       )
     </statement>
   </sql>

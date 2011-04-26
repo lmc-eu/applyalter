@@ -279,6 +279,18 @@ public abstract class DbInstance
         case column:
           rs = md.getColumns( null, schema, table, name );
           break;
+        case index:
+          rs = md.getIndexInfo( null, schema, table, false, true );
+          //there is no way to pass in index name --> we have to iterate resultset and find it
+          while ( rs.next() )
+          {
+            final String index_name = rs.getString( "INDEX_NAME" );
+            if ( name.equalsIgnoreCase( index_name ) )
+            {
+              return true ^ chk.isInverted();
+            }
+          }
+          return false ^ chk.isInverted();
         default:
           throw new UnsupportedOperationException(
               getClass().getSimpleName() + " does not support check type " + chk.getType()

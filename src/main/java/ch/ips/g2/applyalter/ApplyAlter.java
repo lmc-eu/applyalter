@@ -76,7 +76,11 @@ public class ApplyAlter
    */
   public static final String XML_SUFFIX = ".xml";
 
-  private static final String[] INTERNAL_SCRIPTS = {"applyalter_log_db2.xml", "applyalter_log_pgsql.xml"};
+  private static final String[] INTERNAL_SCRIPTS = {
+          "applyalter_log_db2.xml", "applyalter_log_pgsql.xml",
+          "applyalter_hash_db2.xml", "applyalter_hash_pgsql.xml",
+          "applyalter_idindex_db2.xml", "applyalter_idindex_pgsql.xml",
+  };
 
   /**
    * XML validator
