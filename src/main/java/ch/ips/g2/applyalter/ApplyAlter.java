@@ -454,7 +454,8 @@ public class ApplyAlter
             executeStatement( d, a, s );
           }
           long time = System.currentTimeMillis() - start;
-          savelog( d, dbid, a.getId(), time );
+          //TODO: implement hash!
+          savelog( d, dbid, a.getId(), time, null );
 
         }
         catch (ApplyAlterException e)
@@ -577,7 +578,7 @@ public class ApplyAlter
    * @param id alter id
    * @param time alter duration
    */
-  protected void savelog( DbInstance d, String dbid, String id, long time)
+  protected void savelog( DbInstance d, String dbid, String id, long time, String hash)
   {
     Connection c = d.getConnection();
     runContext.report( ALTER, "Alter %s on %s took %s ms", id, dbid, time);
@@ -591,10 +592,11 @@ public class ApplyAlter
     PreparedStatement s = null;
     try
     {
-      s = c.prepareStatement("insert into "+d.getLogTable()+" (username,id,duration) values (?,?,?)");
+      s = c.prepareStatement("insert into "+d.getLogTable()+" (username,id,duration,hash) values (?,?,?,?)");
       s.setString(1, username);
       s.setString(2, id);
       s.setLong(3, time);
+      s.setString(4, hash);
       s.executeUpdate();
     }
     catch (SQLException e)

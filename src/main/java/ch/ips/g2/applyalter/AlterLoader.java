@@ -217,6 +217,10 @@ public class AlterLoader
 
   //-----------------------------------------------------------------------------------------------------------------
 
+    /**
+     * Generic alterscript source: either files on fielsystem or files in archive.
+     * All alterscripts must be able to be loaded several times!
+     */
   protected interface AlterSource
   {
     InputStream openScript()
