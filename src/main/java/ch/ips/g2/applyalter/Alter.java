@@ -26,6 +26,10 @@ public class Alter
    * Alter identifier: not serialized, but fulled when loaded.
    */
   private transient String id;
+  /**
+   * Hash "checksum" of this alterscript: SHA-1 of the source file AND all datafiles.
+   */
+  private transient String hash;
 
   /**
    * Engine: when set, alterscript will be ignored for other engines.
@@ -119,11 +123,23 @@ public class Alter
   {
     return id;
   }
-  public void setId(String id)
+  protected void setId(String id)
   {
     this.id = id;
   }
-  
+
+  /**
+   * SHA-1 hash of the alterscript (and all datafiles, if there are any).
+   */
+  public String getHash()
+  {
+    return hash;
+  }
+  protected void setHash( String hash )
+  {
+    this.hash = hash;
+  }
+
   public String getCheckok()
   {
     return checkok;

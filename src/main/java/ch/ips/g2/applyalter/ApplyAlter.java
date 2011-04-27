@@ -261,8 +261,9 @@ public class ApplyAlter
     Alter[] internalAlters = new Alter[INTERNAL_SCRIPTS.length];
     for ( int i = 0; i < INTERNAL_SCRIPTS.length; i++ )
     {
-      String alterName = INTERNAL_SCRIPTS[i];
-      internalAlters[i] = alterLoader.newAlter( alterName, getClass().getResourceAsStream( alterName ) );
+      final String alterName = INTERNAL_SCRIPTS[i];
+      internalAlters[i] = alterLoader.parseScriptFile( alterName,
+          new AlterLoader.RelativeToClassAlterSource( getClass(), alterName ) );
     }
 
     //nothing should be shown to user
@@ -454,8 +455,7 @@ public class ApplyAlter
             executeStatement( d, a, s );
           }
           long time = System.currentTimeMillis() - start;
-          //TODO: implement hash!
-          savelog( d, dbid, a.getId(), time, null );
+          savelog( d, dbid, a.getId(), time, a.getHash() );
 
         }
         catch (ApplyAlterException e)

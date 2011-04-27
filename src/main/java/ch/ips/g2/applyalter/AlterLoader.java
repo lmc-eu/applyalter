@@ -9,6 +9,9 @@ import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.IOException;
+import java.security.DigestInputStream;
+import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
 import java.util.List;
 import java.util.Enumeration;
 import java.util.ArrayList;
@@ -39,29 +42,6 @@ public class AlterLoader
   }
 
   /**
-   * Create new instance from XML serialized form
-   *
-   * @param file identifier for {@link ch.ips.g2.applyalter.Alter#setId(String)} ; can be fake file path
-   * @param i input stream to read from
-   * @return new instance
-   */
-  public Alter newAlter( String file, InputStream i )
-  {
-    Alter a = null;
-    try
-    {
-      a = (Alter) xstream.fromXML( i );
-    }
-    catch (XStreamException e)
-    {
-      throw new ApplyAlterException( "Unable to deserialize Alter from file " + file, e );
-    }
-    // get file name part
-    a.setId( new File( file ).getName() );
-    return a;
-  }
-
-  /**
    * Load alterscripts from files and ZIP archives.
    */
   public List<Alter> loadAlters( String... filenames )
@@ -87,10 +67,14 @@ public class AlterLoader
 
   /**
    * Parse script file, validate it and load datafiles (if any).
+   * This method sets {@link ch.ips.g2.applyalter.Alter#getId()} and {@link ch.ips.g2.applyalter.Alter#getHash()}
+   * (note: this is the place where hash algorithm is implemented).
    */
-  private Alter parseScriptFile( String fileId, AlterSource source )
+  public Alter parseScriptFile( String fileId, AlterSource source )
   {
     Alter alterscript;
+    final MessageDigest digest = initHashDigest();
+
     InputStream inputStream = null;
     try
     {
@@ -99,8 +83,13 @@ public class AlterLoader
         validator.validate( new StreamSource( source.openScript() ) );
       }
       inputStream = source.openScript();
-      alterscript = newAlter( fileId, inputStream );
-
+      //compute hash on-the-fly
+      inputStream = new DigestInputStream( inputStream, digest );
+      alterscript = (Alter) xstream.fromXML( inputStream );
+    }
+    catch (XStreamException e)
+    {
+      throw new ApplyAlterException( "Unable to deserialize Alter from file " + fileId, e );
     }
     catch (FileNotFoundException e)
     {
@@ -120,7 +109,7 @@ public class AlterLoader
       //BaseUtil.closeNoThrow( inputStream, "parseScriptFile" );
     }
 
-    //load
+    //load data files
     if ( alterscript.datafile != null && alterscript.datafile.size() > 0 )
     {
       alterscript._datafiles = new TreeMap<String, byte[]>();
@@ -130,6 +119,7 @@ public class AlterLoader
         try
         {
           inputStream = source.openDataFile( datafile );
+          inputStream = new DigestInputStream( inputStream, digest );
           byte[] data = IOUtils.toByteArray( inputStream );
           alterscript._datafiles.put( datafile, data );
         }
@@ -149,7 +139,46 @@ public class AlterLoader
       }
     }
 
+    // set filename part
+    alterscript.setId( new File( fileId ).getName() );
+    //set hash
+    final byte[] hashBytes = digest.digest();
+    alterscript.setHash( bytes2hex( hashBytes ) );
+
     return alterscript;
+  }
+
+  /**
+   * Convert bytes to hex string.
+   */
+  protected static String bytes2hex( byte[] hashBytes )
+  {
+    char[] hexChars = new char[2 * hashBytes.length];
+    int ci = 0;
+    for ( byte hashByte : hashBytes )
+    {
+      //trick: & 0xFF makes signed value unsigned
+      int b = hashByte & 0xff;
+      hexChars[ci++] = Character.toUpperCase( Character.forDigit( b >> 4, 16 ) );
+      hexChars[ci++] = Character.toUpperCase( Character.forDigit( b & 0xf, 16 ) );
+    }
+    return new String( hexChars );
+  }
+
+  /**
+   * Initialize hash algorithm.
+   * @return hash digest
+   */
+  private MessageDigest initHashDigest()
+  {
+    try
+    {
+      return MessageDigest.getInstance( "SHA-1" );
+    }
+    catch (NoSuchAlgorithmException e)
+    {
+      throw new ApplyAlterException( "Hash algorithm not supported", e );
+    }
   }
 
   /**
@@ -217,11 +246,11 @@ public class AlterLoader
 
   //-----------------------------------------------------------------------------------------------------------------
 
-    /**
-     * Generic alterscript source: either files on fielsystem or files in archive.
-     * All alterscripts must be able to be loaded several times!
-     */
-  protected interface AlterSource
+  /**
+   * Generic alterscript source: either files on fielsystem or files in archive.
+   * All alterscripts must be able to be loaded several times!
+   */
+  public interface AlterSource
   {
     InputStream openScript()
         throws IOException;
@@ -238,7 +267,10 @@ public class AlterLoader
         throws IOException;
   }
 
-  private static class FileSource implements AlterSource
+  /**
+   * Alterscript loaded from file, data files are in the same directory.
+   */
+  public static class FileSource implements AlterSource
   {
     private File file;
 
@@ -261,7 +293,10 @@ public class AlterLoader
     }
   }
 
-  private static class ZipAlterSource implements AlterSource
+  /**
+   * Alterscript loaded ZIP archive, data files are in the same archive (note: only root level is supported).
+   */
+  public static class ZipAlterSource implements AlterSource
   {
     private final ZipFile zip;
     private final ZipEntry scriptEntry;
@@ -287,6 +322,33 @@ public class AlterLoader
       if ( dataEntry == null )
         throw new FileNotFoundException( "no such file in archive: " + filename + " in " + zip.getName() );
       return zip.getInputStream( dataEntry );
+    }
+  }
+
+  /**
+   * Alterscript loaded from classpath (relative to some class), data files are in the same package.
+   */
+  public static class RelativeToClassAlterSource implements AlterSource
+  {
+    private final Class<?> baseClass;
+    private final String alterName;
+
+    public RelativeToClassAlterSource( Class<?> baseClass, String alterName )
+    {
+      this.baseClass = baseClass;
+      this.alterName = alterName;
+    }
+
+    public InputStream openScript()
+        throws IOException
+    {
+      return baseClass.getResourceAsStream( alterName );
+    }
+
+    public InputStream openDataFile( String filename )
+        throws IOException
+    {
+      return baseClass.getResourceAsStream( filename );
     }
   }
 }
