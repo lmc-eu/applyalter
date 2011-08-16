@@ -1,18 +1,7 @@
 package ch.ips.g2.applyalter;
 
 import static ch.ips.g2.applyalter.ReportLevel.*;
-import org.apache.commons.cli.BasicParser;
-import org.apache.commons.cli.CommandLine;
-import org.apache.commons.cli.CommandLineParser;
-import org.apache.commons.cli.HelpFormatter;
-import org.apache.commons.cli.Options;
-import org.apache.commons.cli.UnrecognizedOptionException;
-import org.apache.commons.io.IOUtils;
-import org.xml.sax.SAXException;
-import javax.xml.transform.stream.StreamSource;
-import javax.xml.validation.Schema;
-import javax.xml.validation.SchemaFactory;
-import javax.xml.validation.Validator;
+
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
@@ -26,6 +15,21 @@ import java.util.Collection;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
+
+import javax.xml.transform.stream.StreamSource;
+import javax.xml.validation.Schema;
+import javax.xml.validation.SchemaFactory;
+import javax.xml.validation.Validator;
+
+import org.apache.commons.cli.BasicParser;
+import org.apache.commons.cli.CommandLine;
+import org.apache.commons.cli.CommandLineParser;
+import org.apache.commons.cli.HelpFormatter;
+import org.apache.commons.cli.Options;
+import org.apache.commons.cli.UnrecognizedOptionException;
+import org.apache.commons.io.IOUtils;
+import org.xml.sax.SAXException;
+
 import com.google.common.collect.ArrayListMultimap;
 import com.google.common.collect.Multimap;
 import com.thoughtworks.xstream.XStream;
@@ -51,6 +55,10 @@ public class ApplyAlter
    * Run mode parameter name
    */
   public static final String RUN_MODE = "r";
+  /**
+   * Incremental mode parameter name
+   */
+  public static final String INC_MODE = "s";
   /**
    * Ignore failures parameter name
    */
@@ -549,6 +557,9 @@ public class ApplyAlter
 
   protected boolean executeChecks( Alter alter, DbInstance d, Connection connection )
   {
+    if (checkInc(alter, d, connection)) {
+      return true;
+    }
     if ( check( connection, alter.getCheckok() ) )
     {
       //checkOK is sufficient
@@ -569,6 +580,31 @@ public class ApplyAlter
       }
     }
     return true;
+  }
+
+  boolean checkInc(Alter alter, DbInstance d, Connection c) {
+    if (alter.synchronization) {
+      // continue with checks
+      return false;      
+    }
+    if (o.getOption(INC_MODE) == null) {
+      return false;
+    }
+    PreparedStatement s = null;
+    try {
+      s = c.prepareStatement("select hash from " + d.getLogTable() + " where id = ?");
+      s.setString(2, alter.getId());
+      if (s.execute()) {
+        // TODO check hash
+        // the only case to skip script if option is set, sync is not set and result set is not empty
+        return true;
+      }
+    } catch (SQLException e) {
+      runContext.report(ReportLevel.ERROR, "failed to insert applyalter_log record: %s", e.getMessage());
+    } finally {
+      DbUtils.close(s);
+    }
+    return false;
   }
 
   /**
@@ -660,6 +696,7 @@ public class ApplyAlter
     return s.toString();
   }
 
+  static Options o = new Options();
   /**
    * Main function, which can be called from command line.
    *
@@ -667,13 +704,13 @@ public class ApplyAlter
    */
   public static void main(String[] args)
   {
-    Options o = new Options();
     o.addOption( IGNORE_FAILURES, false, "ignore failures" );
     o.addOption( PRINTSTACKTRACE, false, "print stacktrace" );
     o.addOption( RUN_MODE, true, "runmode, possible values: " + Arrays.toString( RunMode.values() ) );
     o.addOption( USER_NAME, true, "user name" );
     o.addOption( NO_VALIDATE_XML, false, "disables XML file with alter script validation" );
     o.addOption( NO_LOG_TABLE, false, "disables log table" );
+    o.addOption(INC_MODE, false, "incremental mode");
 
     boolean ignfail = false;
     boolean printstacktrace = false;

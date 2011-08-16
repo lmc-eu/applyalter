@@ -3,8 +3,9 @@ package ch.ips.g2.applyalter;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
-import java.util.Set;
 import java.util.Map;
+import java.util.Set;
+
 import com.thoughtworks.xstream.annotations.XStreamAlias;
 import com.thoughtworks.xstream.annotations.XStreamImplicit;
 
@@ -43,6 +44,8 @@ public class Alter
   public List<Check> checks = new ArrayList<Check>();
   @XStreamImplicit(itemFieldName = "instance")
   public Set<String> instance = new HashSet<String>();
+  @XStreamImplicit
+  public Boolean synchronization = false;
 
   @XStreamImplicit(itemFieldName = "datafile")
   public List<String> datafile;
