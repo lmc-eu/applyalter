@@ -603,7 +603,7 @@ public class ApplyAlter
           hash = rs.getString(1);
         } while (rs.next());
         if (hash == null || !hash.equals(alter.getHash())) {
-          runContext.report(ReportLevel.ALTER, "hash doesn't match!\n" + hash + " is in DB for id: " + alter.getId()
+          runContext.report(ReportLevel.ALTER, "hash doesn't match! " + hash + " is in DB for id: " + alter.getId()
               + " while script hash is: " + alter.getHash());
         }
         // the only case to skip script if option is set, sync is not set and result set is not empty
