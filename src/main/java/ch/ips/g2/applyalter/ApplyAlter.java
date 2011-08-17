@@ -583,7 +583,6 @@ public class ApplyAlter
   }
 
   boolean checkInc(Alter alter, DbInstance d, Connection c) {
-    runContext.report(ReportLevel.ALTER, "check script id: " + alter.getId());
     if (alter.synchronization) {
       // continue with checks
       return false;
@@ -594,7 +593,6 @@ public class ApplyAlter
     }
     PreparedStatement s = null;
     try {
-      runContext.report(ReportLevel.ALTER, "--  select from: " + d.getLogTable());
       s = c.prepareStatement("select hash from " + d.getLogTable() + " where id = ?");
       s.setString(1, alter.getId());
       s.execute();
@@ -613,7 +611,7 @@ public class ApplyAlter
             .report(ReportLevel.ALTER, "skip script id: " + alter.getId() + " script hash: " + alter.getHash());
         return true;
       }
-      runContext.report(ReportLevel.ALTER, "exec script id: " + alter.getId() + " script hash: " + alter.getHash());
+      runContext.report(ReportLevel.ALTER, "The first try script id: " + alter.getId());
     } catch (SQLException e) {
       runContext.report(ReportLevel.ERROR, "failed to select applyalter_log record: %s", e.getMessage());
     } finally {
