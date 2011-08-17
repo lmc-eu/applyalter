@@ -24,7 +24,7 @@ public class Alter
   public static final String DEFAULT_SCHEMA = "wasg2";
 
   /**
-   * Alter identifier: not serialized, but fulled when loaded.
+   * Alter identifier: not serialized, but filled when loaded.
    */
   private transient String id;
   /**
@@ -44,8 +44,7 @@ public class Alter
   public List<Check> checks = new ArrayList<Check>();
   @XStreamImplicit(itemFieldName = "instance")
   public Set<String> instance = new HashSet<String>();
-  @XStreamImplicit
-  public Boolean synchronization = false;
+  public boolean synchronization = false;
 
   @XStreamImplicit(itemFieldName = "datafile")
   public List<String> datafile;

@@ -12,6 +12,7 @@
         <xs:element ref="instance" minOccurs="0" maxOccurs="unbounded" />
         <xs:element ref="isolation" minOccurs="0" maxOccurs="unbounded" />
         <xs:element ref="checkok" minOccurs="0" maxOccurs="1" />
+        <xs:element ref="synchronization" minOccurs="0" maxOccurs="1" />
         <xs:element ref="check" minOccurs="0" maxOccurs="unbounded" />
         <xs:element ref="datafile" minOccurs="0" maxOccurs="unbounded" />
         <xs:choice minOccurs="0" maxOccurs="unbounded">
@@ -55,6 +56,12 @@
   <xs:element name="checkok" type="xs:string" >
     <xs:annotation>
       <xs:documentation>String checkok, který se vyhodnotí jako SQL dotaz a pokud vrátí OK znamená to, že alter byl nasazen</xs:documentation>
+    </xs:annotation>
+  </xs:element> 
+
+  <xs:element name="synchronization" type="xs:string" >
+    <xs:annotation>
+      <xs:documentation>String true or false. If true incremental mode will be ignored for this script.</xs:documentation>
     </xs:annotation>
   </xs:element> 
 

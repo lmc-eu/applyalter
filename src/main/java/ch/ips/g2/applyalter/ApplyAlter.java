@@ -583,27 +583,43 @@ public class ApplyAlter
   }
 
   boolean checkInc(Alter alter, DbInstance d, Connection c) {
+    runContext.report(ReportLevel.ALTER, "check script id: " + alter.getId());
     if (alter.synchronization) {
       // continue with checks
-      return false;      
+      return false;
     }
-    if (o.getOption(INC_MODE) == null) {
+    if (!isIncrimental) {
+      // continue with checks
       return false;
     }
     PreparedStatement s = null;
     try {
+      runContext.report(ReportLevel.ALTER, "--  select from: " + d.getLogTable());
       s = c.prepareStatement("select hash from " + d.getLogTable() + " where id = ?");
-      s.setString(2, alter.getId());
-      if (s.execute()) {
-        // TODO check hash
+      s.setString(1, alter.getId());
+      s.execute();
+      ResultSet rs = s.getResultSet();
+      if (rs.next()) {
+        String hash = null;
+        do {
+          hash = rs.getString(1);
+        } while (rs.next());
+        if (hash == null || !hash.equals(alter.getHash())) {
+          runContext.report(ReportLevel.ALTER, "hash doesn't match!\n" + hash + " is in DB for id: " + alter.getId()
+              + " while script hash is: " + alter.getHash());
+        }
         // the only case to skip script if option is set, sync is not set and result set is not empty
+        runContext
+            .report(ReportLevel.ALTER, "skip script id: " + alter.getId() + " script hash: " + alter.getHash());
         return true;
       }
+      runContext.report(ReportLevel.ALTER, "exec script id: " + alter.getId() + " script hash: " + alter.getHash());
     } catch (SQLException e) {
-      runContext.report(ReportLevel.ERROR, "failed to insert applyalter_log record: %s", e.getMessage());
+      runContext.report(ReportLevel.ERROR, "failed to select applyalter_log record: %s", e.getMessage());
     } finally {
       DbUtils.close(s);
     }
+    // continue with checks
     return false;
   }
 
@@ -696,14 +712,15 @@ public class ApplyAlter
     return s.toString();
   }
 
-  static Options o = new Options();
+  static boolean isIncrimental = false;
   /**
    * Main function, which can be called from command line.
    *
    * @param args
    */
   public static void main(String[] args)
-  {
+ {
+    Options o = new Options();
     o.addOption( IGNORE_FAILURES, false, "ignore failures" );
     o.addOption( PRINTSTACKTRACE, false, "print stacktrace" );
     o.addOption( RUN_MODE, true, "runmode, possible values: " + Arrays.toString( RunMode.values() ) );
@@ -738,6 +755,7 @@ public class ApplyAlter
       printstacktrace = cmd.hasOption( PRINTSTACKTRACE );
       validateXml = !cmd.hasOption( NO_VALIDATE_XML );
       useLogTable = !cmd.hasOption( NO_LOG_TABLE );
+      isIncrimental = cmd.hasOption(INC_MODE);
 
       String[] a = cmd.getArgs();
       if ( a.length < 1 )
