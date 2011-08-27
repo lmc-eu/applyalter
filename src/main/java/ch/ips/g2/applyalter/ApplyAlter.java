@@ -15,6 +15,7 @@ import java.util.Collection;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
+import java.util.TreeSet;
 
 import javax.xml.transform.stream.StreamSource;
 import javax.xml.validation.Schema;
@@ -142,14 +143,13 @@ public class ApplyAlter
     this.setLogTableUsed( useLogTable );
 
     xstream.processAnnotations( getXmlClasses() );
-    xstream.alias("db", List.class);
 
     FileInputStream fis = null;
     try
     {
       fis = new FileInputStream( dbconfigfile );
-      List<DbInstance> d = (List<DbInstance>) xstream.fromXML( fis );
-      db = new DbConfig( d, ignorefailures );
+      DbConfigFile dcf = (DbConfigFile) xstream.fromXML( fis );
+      db = new DbConfig( dcf, ignorefailures );
       if ( validateXml )
       {
         this.validator = readXsd( runContext );
@@ -178,6 +178,7 @@ public class ApplyAlter
   private Class[] getXmlClasses()
   {
     return new Class[]{
+        DbConfigFile.class,
         Alter.class,
         SQL.class,
         CSV.class,
@@ -347,13 +348,17 @@ public class ApplyAlter
   }
 
   /**
-   * Check if all database types in alters are defined in database configuration
+   * Check if all database types (and environments) in alters are defined in database configuration.
+   * If any alterscript contains unknown database it, exception is thrown.
+   * If any alterscript contains environment and database configuration has none, exception is throws.
+   *
    * @param alters to check
    * @throws ApplyAlterException if there is an unknown database type
    */
   protected void checkDbIds(Alter... alters) throws ApplyAlterException
   {
     Set<String> types = db.getDbTypes();
+    Set<String> environments = new TreeSet<String>();
     for ( Alter a : alters )
     {
       if ( a.getInstance() == null )
@@ -368,6 +373,15 @@ public class ApplyAlter
               + types );
         }
       }
+      if ( a.environment != null )
+      {
+        environments.addAll( a.environment );
+      }
+    }
+    if ( db.getEnvironment() == null && !environments.isEmpty() )
+    {
+      throw new ApplyAlterException( "No environment in confiuration, but alterscripts contain "
+          + environments + ". Add environment to configuration." );
     }
   }
 
@@ -422,6 +436,14 @@ public class ApplyAlter
       {
         //skip
         runContext.report( ALTER, "alterscript is only for %s, database is %s, skipping", a.engine, d.getEngine() );
+        continue;
+      }
+
+      if ( a.environment != null && !a.environment.contains( db.getEnvironment() ) )
+      {
+        //skip
+        runContext.report( ALTER, "alterscript is for environment %s, database is %s, skipping",
+            a.environment, db.getEnvironment() );
         continue;
       }
 

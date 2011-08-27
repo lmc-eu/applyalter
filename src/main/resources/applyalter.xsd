@@ -10,6 +10,7 @@
         <xs:element ref="engine" minOccurs="0" maxOccurs="1" />
         <xs:element ref="schema" minOccurs="0" maxOccurs="1" />
         <xs:element ref="instance" minOccurs="0" maxOccurs="unbounded" />
+        <xs:element ref="environment" minOccurs="0" maxOccurs="unbounded" />
         <xs:element ref="isolation" minOccurs="0" maxOccurs="unbounded" />
         <xs:element ref="checkok" minOccurs="0" maxOccurs="1" />
         <xs:element ref="synchronization" minOccurs="0" maxOccurs="1" />
@@ -64,6 +65,12 @@
       <xs:documentation>String true or false. If true incremental mode will be ignored for this script.</xs:documentation>
     </xs:annotation>
   </xs:element> 
+
+  <xs:element name="environment" type="xs:string" >
+    <xs:annotation>
+      <xs:documentation>String true or false. If true incremental mode will be ignored for this script.</xs:documentation>
+    </xs:annotation>
+  </xs:element>
 
   <xs:element name="check">
     <xs:annotation>

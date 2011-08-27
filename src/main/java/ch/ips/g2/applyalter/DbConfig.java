@@ -18,6 +18,7 @@ import java.util.Set;
 @SuppressWarnings({"ThrowableInstanceNeverThrown"})
 public class DbConfig
 {
+  protected String environment;
   protected final List<DbInstance> instances;
   protected final Set<String> knownDbTypes;
   
@@ -25,6 +26,12 @@ public class DbConfig
    * fail with first exception or collect them and report at one 
    */
   protected boolean ignorefailures;
+
+  public DbConfig( DbConfigFile dcf, boolean ignorefailures )
+  {
+    this(dcf.instances, ignorefailures );
+    this.environment = dcf.environment;
+  }
 
   public DbConfig( List<DbInstance> configuredDatabases, boolean ignorefailures )
   {
@@ -43,6 +50,15 @@ public class DbConfig
       }
     }
     this.ignorefailures = ignorefailures;
+  }
+
+  /**
+   * Optional environment: any script with &lt;environment&gt; element will be executed only if this value
+   * is specified and equal. Attempt to execute such script without specified environement is error.
+   */
+  public String getEnvironment()
+  {
+    return environment;
   }
 
   public List<DbInstance> getEntries() {

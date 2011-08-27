@@ -39,6 +39,8 @@ public class Alter
 
   public String schema = DEFAULT_SCHEMA;
   public IsolationLevel isolation;
+  @XStreamImplicit(itemFieldName = "environment")
+  public Set<String> environment;
   public String checkok;
   @XStreamImplicit
   public List<Check> checks = new ArrayList<Check>();
