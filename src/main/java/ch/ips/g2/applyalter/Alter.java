@@ -46,6 +46,9 @@ public class Alter
   public List<Check> checks = new ArrayList<Check>();
   @XStreamImplicit(itemFieldName = "instance")
   public Set<String> instance = new HashSet<String>();
+  /**
+   * Synchronization flag: used to mark everchanging (generated) scripts. Used in incremental mode.
+   */
   public boolean synchronization = false;
 
   @XStreamImplicit(itemFieldName = "datafile")

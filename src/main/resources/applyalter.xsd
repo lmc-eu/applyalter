@@ -62,7 +62,14 @@
 
   <xs:element name="synchronization" type="xs:string" >
     <xs:annotation>
-      <xs:documentation>String true or false. If true incremental mode will be ignored for this script.</xs:documentation>
+      <xs:documentation>Boolean value (lowercase): true or false. Missing element is the same as "false" = normal script.
+          When "true" and the incremental mode found previous execution record with wrong hash, no error is produced
+          and the script is just executed.
+
+          No effect in non-incremental (default) mode.
+
+          Intended to be used for dynamic-generated scripts (SVL synchronization, permissions synchronization, etc).
+      </xs:documentation>
     </xs:annotation>
   </xs:element> 
 

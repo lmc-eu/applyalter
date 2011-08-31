@@ -6,10 +6,12 @@ import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.sql.Connection;
+import java.sql.Date;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Savepoint;
+import java.sql.Timestamp;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.HashSet;
@@ -604,33 +606,46 @@ public class ApplyAlter
     return true;
   }
 
+  /**
+   * Check incremental mode.
+   * @return true = this script has already been executed, skip it; <br />
+   * false = execute it
+   */
   boolean checkInc(Alter alter, DbInstance d, Connection c) {
-    if (alter.synchronization) {
-      // continue with checks
-      return false;
-    }
     if (!isIncrimental) {
       // continue with checks
       return false;
     }
     PreparedStatement s = null;
     try {
-      s = c.prepareStatement("select hash from " + d.getLogTable() + " where id = ?");
+      s = c.prepareStatement("select hash,AT from " + d.getLogTable() + " where id = ? order by AT desc");
       s.setString(1, alter.getId());
+      s.setMaxRows( 1 );
       s.execute();
       ResultSet rs = s.getResultSet();
+      //read only one hash (the last one)
       if (rs.next()) {
-        String hash = null;
-        do {
-          hash = rs.getString(1);
-        } while (rs.next());
+        String hash = rs.getString( 1 );
+        Timestamp at = rs.getTimestamp( 2 );
         if (hash == null || !hash.equals(alter.getHash())) {
+          runContext.report( ReportLevel.ALTER, String.format(
+              "script id: %s changed since: %s (%s to %s)",
+              alter.getId(), at.toString(), hash, alter.getHash()
+          ) );
+          //this script has been already executed, but with different hash!
+          if (alter.synchronization) {
+            // synchronization script: it is supposed to change
+            //  no error, but the script is executed
+            return false;
+          }
+          //normal script: it should not change!
+          // log error and skip this script
           runContext.report(ReportLevel.ALTER, "hash doesn't match! " + hash + " is in DB for id: " + alter.getId()
               + " while script hash is: " + alter.getHash());
         }
         // the only case to skip script if option is set, sync is not set and result set is not empty
         runContext
-            .report(ReportLevel.ALTER, "skip script id: " + alter.getId() + " script hash: " + alter.getHash());
+            .report(ReportLevel.ALTER, "skipping script id: " + alter.getId() + " script hash: " + alter.getHash());
         return true;
       }
       runContext.report(ReportLevel.ALTER, "The first try script id: " + alter.getId());
