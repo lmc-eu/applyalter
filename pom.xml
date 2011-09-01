@@ -4,7 +4,7 @@
     <modelVersion>4.0.0</modelVersion>
     <groupId>eu.lmc.tools</groupId>
     <artifactId>applyalter</artifactId>
-    <version>11.4-SNAPSHOT</version>
+    <version>synchronization1</version>
     <name>applyalter</name>
 
     <properties>
@@ -119,6 +119,10 @@
                             <groupId>${project.groupId}</groupId>
                             <artifactId>${project.artifactId}</artifactId>
                             <Class-Path>db2java.zip postgresql.jar ojdbc14.jar ojdbc5.jar</Class-Path>
+                            <Hudson-Build-ID>${BUILD_ID}</Hudson-Build-ID>
+                            <Hudson-Build-URL>${BUILD_URL}</Hudson-Build-URL>
+                            <git-branch>${GIT_BRANCH}</git-branch>
+                            <git-commit>${GIT_COMMIT}</git-commit>
                         </manifestEntries>
                     </archive>
                     <appendAssemblyId>true</appendAssemblyId>

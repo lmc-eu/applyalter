@@ -5,6 +5,9 @@ import static ch.ips.g2.applyalter.ReportLevel.*;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
+import java.io.IOException;
+import java.io.InputStream;
+import java.net.URL;
 import java.sql.Connection;
 import java.sql.Date;
 import java.sql.PreparedStatement;
@@ -12,12 +15,18 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Savepoint;
 import java.sql.Timestamp;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 import java.util.TreeSet;
+import java.util.jar.Attributes;
+import java.util.jar.JarFile;
+import java.util.jar.Manifest;
 
 import javax.xml.transform.stream.StreamSource;
 import javax.xml.validation.Schema;
@@ -763,6 +772,7 @@ public class ApplyAlter
     o.addOption( NO_VALIDATE_XML, false, "disables XML file with alter script validation" );
     o.addOption( NO_LOG_TABLE, false, "disables log table" );
     o.addOption(INC_MODE, false, "incremental mode");
+    o.addOption( "V", "version", false, "version" );
 
     boolean ignfail = false;
     boolean printstacktrace = false;
@@ -774,6 +784,11 @@ public class ApplyAlter
     {
       CommandLineParser parser = new BasicParser();
       CommandLine cmd = parser.parse( o, args );
+
+      if ( cmd.hasOption( "V" ) ) {
+        printVersion();
+        System.exit( 0 );
+      }
 
       String username = cmd.getOptionValue( USER_NAME );
       if ( username == null || "".equals( username.trim() ) )
@@ -822,7 +837,9 @@ public class ApplyAlter
     catch ( UnrecognizedOptionException e )
     {
       System.out.println( e.getMessage() );
-      new HelpFormatter().printHelp( "applyalter [options] <dbconfig.xml> (alter.xml|alter.zip) ...", o, false );
+      final HelpFormatter helpFormatter = new HelpFormatter();
+      helpFormatter.printHelp( "applyalter [options] <dbconfig.xml> (alter.xml|alter.zip) ...", o, false );
+      printVersion();
     }
     catch ( Throwable e )
     {
@@ -831,6 +848,34 @@ public class ApplyAlter
       else
         e.printStackTrace( System.err );
       System.exit( -1 );
+    }
+  }
+
+  private static void printVersion()
+  {
+    System.out.println();
+    try
+    {
+      final URL jarUrl = ApplyAlter.class.getProtectionDomain().getCodeSource().getLocation();
+      System.out.println( jarUrl );
+      Manifest man = new JarFile( jarUrl.getFile() ).getManifest();
+      final Attributes a = man.getMainAttributes();
+      List<String> keys = new ArrayList<String>();
+      for ( Object key : a.keySet() )
+      {
+        final String lk = key.toString().toLowerCase();
+        if ( lk.startsWith( "hudson" ) || lk.startsWith( "jenking" ) || lk.startsWith( "git" ) )
+          keys.add( key.toString() );
+      }
+      Collections.sort( keys );
+      for ( String key : keys )
+      {
+        System.out.printf( "%s: %s%n", key, a.getValue( key ) );
+      }
+    }
+    catch (Exception e)
+    {
+      System.out.printf( "Unknown version (%s)%n", e );
     }
   }
 
