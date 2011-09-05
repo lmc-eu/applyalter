@@ -5,11 +5,8 @@ import static ch.ips.g2.applyalter.ReportLevel.*;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
-import java.io.IOException;
-import java.io.InputStream;
 import java.net.URL;
 import java.sql.Connection;
-import java.sql.Date;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
@@ -21,7 +18,6 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
-import java.util.Map;
 import java.util.Set;
 import java.util.TreeSet;
 import java.util.jar.Attributes;
@@ -80,6 +76,10 @@ public class ApplyAlter
    */
   public static final String USER_NAME = "u";
   /**
+   * Environment.
+   */
+  public static final String ENVIRONMENT_OPT = "e";
+  /**
    * XML validation on/off
    */
   public static final String NO_VALIDATE_XML = "n";
@@ -119,6 +119,7 @@ public class ApplyAlter
   protected String username;
   protected Multimap<String,String> unapplied = ArrayListMultimap.create();
   private boolean logTableUsed;
+  private String environment;
 
 
   protected RunMode getRunMode()
@@ -137,6 +138,15 @@ public class ApplyAlter
   }
 
   /**
+   * Get configured environment.
+   * @return environment; null if no envirnment is configured
+   */
+  public String getEnvironment()
+  {
+    return environment;
+  }
+
+  /**
    * Create instance of ApplyAlter.
    *
    * @param dbconfigfile XML serialized {@link DbConfig} (database configuration)
@@ -147,11 +157,12 @@ public class ApplyAlter
    */
   @SuppressWarnings("unchecked")
   public ApplyAlter( String dbconfigfile, RunContext runContext, boolean ignorefailures, String username,
-      boolean validateXml, boolean useLogTable )
+      boolean validateXml, boolean useLogTable, String environment )
   {
     this.runContext = runContext;
     this.username = username;
     this.setLogTableUsed( useLogTable );
+    this.environment = environment;
 
     xstream.processAnnotations( getXmlClasses() );
 
@@ -183,6 +194,12 @@ public class ApplyAlter
       IOUtils.closeQuietly( fis );
 //      BaseUtil.closeNoThrow( fis, "ApplyAlter" );
     }
+
+    if ( this.environment == null )
+    {
+      this.environment = this.db.getEnvironment();
+    }
+    runContext.report( MAIN, "environment: %s", this.environment );
   }
 
   @SuppressWarnings({"deprecation"})
@@ -389,7 +406,7 @@ public class ApplyAlter
         environments.addAll( a.environment );
       }
     }
-    if ( db.getEnvironment() == null && !environments.isEmpty() )
+    if ( !environments.isEmpty() && getEnvironment() == null )
     {
       throw new ApplyAlterException( "No environment in confiuration, but alterscripts contain "
           + environments + ". Add environment to configuration." );
@@ -769,6 +786,7 @@ public class ApplyAlter
     o.addOption( PRINTSTACKTRACE, false, "print stacktrace" );
     o.addOption( RUN_MODE, true, "runmode, possible values: " + Arrays.toString( RunMode.values() ) );
     o.addOption( USER_NAME, true, "user name" );
+    o.addOption( ENVIRONMENT_OPT, true, "environment" );
     o.addOption( NO_VALIDATE_XML, false, "disables XML file with alter script validation" );
     o.addOption( NO_LOG_TABLE, false, "disables log table" );
     o.addOption(INC_MODE, false, "incremental mode");
@@ -806,6 +824,7 @@ public class ApplyAlter
       validateXml = !cmd.hasOption( NO_VALIDATE_XML );
       useLogTable = !cmd.hasOption( NO_LOG_TABLE );
       isIncrimental = cmd.hasOption(INC_MODE);
+      String env = cmd.getOptionValue( ENVIRONMENT_OPT );
 
       String[] a = cmd.getArgs();
       if ( a.length < 1 )
@@ -826,7 +845,7 @@ public class ApplyAlter
       rctx.report( MAIN, "ignore failures: %s", ignfail );
       rctx.report( MAIN, "print stacktrace: %s", printstacktrace );
 
-      ApplyAlter applyAlter = new ApplyAlter( a[0], rctx, ignfail, username, validateXml, useLogTable );
+      ApplyAlter applyAlter = new ApplyAlter( a[0], rctx, ignfail, username, validateXml, useLogTable, env );
       applyAlter.applyInternal();
       applyAlter.apply(validateXml, param);
       if ( RunMode.LOOK.equals( rnmd ) )
