@@ -467,11 +467,11 @@ public class ApplyAlter
         continue;
       }
 
-      if ( a.environment != null && !a.environment.contains( db.getEnvironment() ) )
+      if ( a.environment != null && !a.environment.contains( getEnvironment() ) )
       {
         //skip
         runContext.report( ALTER, "alterscript is for environment %s, database is %s, skipping",
-            a.environment, db.getEnvironment() );
+            a.environment, getEnvironment() );
         continue;
       }
 
