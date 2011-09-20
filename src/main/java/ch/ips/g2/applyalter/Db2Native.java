@@ -1,7 +1,13 @@
 package ch.ips.g2.applyalter;
 
 import com.thoughtworks.xstream.annotations.XStreamAlias;
+import org.apache.commons.io.IOUtils;
+import org.w3c.dom.Element;
 
+import javax.xml.parsers.DocumentBuilder;
+import javax.xml.parsers.DocumentBuilderFactory;
+import java.io.FileInputStream;
+import java.io.IOException;
 import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.SQLException;
@@ -77,4 +83,45 @@ public class Db2Native extends Db2Instance
     }
 
   }
+
+  /**
+   * There is no host in this configuration, so default implementaion is useless. It is, however, to use
+   * /etc/lmcenv.xml
+   *
+   * @param runContext run contet (used for logging)
+   * @return environment form /etc/lmcenv.xml <br />null if it cannot be parsed
+   */
+  @Override
+  public String guessEnvironment( RunContext runContext )
+  {
+    final String cfgPath = "/etc/lmcenv.xml";
+    FileInputStream fis = null;
+    try
+    {
+      fis = new FileInputStream( cfgPath );
+      DocumentBuilderFactory docBuildFact = DocumentBuilderFactory.newInstance();
+      DocumentBuilder docBuilder = docBuildFact.newDocumentBuilder();
+      final Element root = docBuilder.parse( fis ).getDocumentElement();
+      final String envName = root.getAttribute( "name" ).trim();
+      if ( envName.length() > 0 )
+      {
+        runContext.report( ReportLevel.DETAIL, "environment read from %s: %s", cfgPath, envName );
+        return envName;
+      }
+    }
+    catch (IOException e)
+    {
+      runContext.report( ReportLevel.DETAIL, "failed to read %s: %s", cfgPath, e );
+    }
+    catch (Exception e)
+    {
+      runContext.report( ReportLevel.DETAIL, e, "failed to parse %s", cfgPath );
+    }
+    finally
+    {
+      IOUtils.closeQuietly( fis );
+    }
+    return null;
+  }
+
 }

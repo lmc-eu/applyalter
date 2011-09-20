@@ -17,6 +17,7 @@ import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashSet;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Set;
 import java.util.TreeSet;
@@ -195,9 +196,32 @@ public class ApplyAlter
 //      BaseUtil.closeNoThrow( fis, "ApplyAlter" );
     }
 
+    determineEnvironment( runContext );
+  }
+
+  /**
+   * Determine environement from database configuration and normalize it.
+   *
+   * @param runContext run context
+   */
+  private void determineEnvironment( RunContext runContext )
+  {
     if ( this.environment == null )
     {
       this.environment = this.db.getEnvironment();
+    }
+    if ( this.environment == null )
+    {
+      //try guessing
+      for ( Iterator<DbInstance> it = this.db.getEntries().iterator(); this.environment == null && it.hasNext(); )
+      {
+        this.environment = it.next().guessEnvironment( runContext );
+      }
+    }
+    //normalize devels
+    if ( this.environment != null && this.environment.startsWith( "dev" ) )
+    {
+      this.environment = "devel";
     }
     runContext.report( MAIN, "environment: %s", this.environment );
   }

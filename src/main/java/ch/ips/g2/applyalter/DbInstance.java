@@ -7,6 +7,8 @@ import java.sql.DriverManager;
 import java.sql.SQLException;
 import java.sql.DatabaseMetaData;
 import java.sql.ResultSet;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 
 /**
@@ -308,5 +310,37 @@ public abstract class DbInstance
     }
   }
 
+  //------------------------------------------------------------------------------------------------------------------
+
+  /**
+   * Regular expression matching LMC environment
+   */
+  protected static final Pattern LMC_HOSTNAME_PATTERN = Pattern.compile( "(\\w+)\\.(\\w+).(.*)" );
+
+  /**
+   * Guess environment: LMC-specific feature.
+   * By default, second component from {@link #host} is considered environment (db2nas.devel.lmc.cz = devel).
+   *
+   * @param runContext run contet (used for logging)
+   * @return environment, null if guess fails
+   * <br /> might be non-normalized (dev1, for example).
+   */
+  public String guessEnvironment( RunContext runContext )
+  {
+    if ( getHost() == null )
+      return null;
+    final Matcher matcher = LMC_HOSTNAME_PATTERN.matcher( getHost() );
+    if ( matcher.matches() )
+    {
+      String env = matcher.group( 2 );
+      runContext.report( ReportLevel.DETAIL, "environment %s guessed from: %s", env, getHost() );
+      return env;
+    }
+    else
+    {
+      runContext.report( ReportLevel.DETAIL, "environment cannot be guessed from: %s", getHost() );
+      return null;
+    }
+  }
 
 }
