@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <alter>
   <engine>Postgresql</engine>
-  <schema>public</schema>
+  <schema>wasg2</schema>
   <check type="table" name="applyalter_log" />
   <sql>
     <statement>
@@ -9,7 +9,7 @@
         at timestamp default now(),
         username varchar(40),
         id varchar(80), duration bigint,
-        hash char(40),
+        hash char(40)
       )
     </statement>
   </sql>
