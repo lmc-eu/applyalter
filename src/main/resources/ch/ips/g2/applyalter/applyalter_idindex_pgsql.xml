@@ -9,7 +9,7 @@
     <sql>
         <ignore-sqlstate>42P07</ignore-sqlstate>
         <statement>
-create index applyalter_ididx on applyalter_log (id)
+create index applyalter_ididx on public.applyalter_log (id)
         </statement>
     </sql>
 

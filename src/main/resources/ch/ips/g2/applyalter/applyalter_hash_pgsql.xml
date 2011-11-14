@@ -5,7 +5,7 @@
     <check type="column" name="hash" table="applyalter_log" />
     <sql>
       <statement>
-        alter table APPLYALTER_LOG add column hash char(40)
+        alter table public.APPLYALTER_LOG add column hash char(40)
       </statement>
     </sql>
 </alter>
