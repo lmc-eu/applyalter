@@ -74,8 +74,8 @@
 
         <dependency>
             <groupId>com.ibm.db2</groupId>
-            <artifactId>db2jcc</artifactId>
-            <version>9.7</version>
+            <artifactId>db2jcc4</artifactId>
+            <version>9.7.6</version>
             <scope>runtime</scope>
         </dependency>
         <dependency>
@@ -118,7 +118,7 @@
                             <version>${project.version}</version>
                             <groupId>${project.groupId}</groupId>
                             <artifactId>${project.artifactId}</artifactId>
-                            <Class-Path>db2java.zip postgresql.jar ojdbc14.jar ojdbc5.jar</Class-Path>
+                            <Class-Path>db2jcc4.jar postgresql.jar ojdbc14.jar ojdbc5.jar</Class-Path>
                             <Hudson-Build-ID>${BUILD_ID}</Hudson-Build-ID>
                             <Hudson-Build-URL>${BUILD_URL}</Hudson-Build-URL>
                             <git-branch>${GIT_BRANCH}</git-branch>

@@ -23,7 +23,7 @@
 	</fileset>
 
 	<fileset dir="${db2}" id="db2libs">
-		<include name="db2jcc*.jar" />
+		<include name="db2jcc4.jar" />
 	</fileset>
 
 	<target name="compile">
