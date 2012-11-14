@@ -10,9 +10,8 @@ import java.util.List;
  * @author Kamil Podlesak &lt;kamil.podlesak@lmc.eu&gt;
  */
 @XStreamAlias("db")
-public class DbConfigFile
-{
-  protected String environment;
-  @XStreamImplicit()
-  protected final List<DbInstance> instances = new ArrayList<DbInstance>(  );
+public class DbConfigFile {
+    protected String environment;
+    @XStreamImplicit()
+    protected final List<DbInstance> instances = new ArrayList<DbInstance>();
 }

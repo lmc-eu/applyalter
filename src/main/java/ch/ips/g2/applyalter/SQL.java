@@ -14,52 +14,44 @@ import java.util.Map;
  * @version $Id$
  */
 @XStreamAlias("sql")
-public class SQL extends AbstractStatement
-{
+public class SQL extends AbstractStatement {
 
-  public SQL()
-  {
-    super();
-  }
-
-  public SQL( String statement )
-  {
-    this();
-    this.statement = statement;
-  }
-
-  /**
-   * Sql statement is just the statement itself.
-   *
-   * @return statement
-   */
-  public String getSqlStatement()
-  {
-    return getStatement();
-  }
-
-  public void execute( DbInstance dbConn, RunContext ctx, Map<String, byte[]> datafiles )
-      throws ApplyAlterException, SQLException
-  {
-    Connection connection = dbConn.getConnection();
-    String sql = getSqlStatement().trim();
-
-    PreparedStatement st = null;
-    try
-    {
-      st = prepareStatement( connection, sql, datafiles, 0 );
-      int rows = 0;
-      if( !st.execute() ) // allows "with ... select ... update ..."
-      {
-        rows = st.getUpdateCount();
-      }
-      ctx.report( ReportLevel.STATEMENT_STEP, "statement executed, changed rows: %d%n", rows );
-    }
-    finally
-    {
-      DbUtils.close( st );
+    public SQL() {
+        super();
     }
 
-  }
+    public SQL(String statement) {
+        this();
+        this.statement = statement;
+    }
+
+    /**
+     * Sql statement is just the statement itself.
+     *
+     * @return statement
+     */
+    public String getSqlStatement() {
+        return getStatement();
+    }
+
+    public void execute(DbInstance dbConn, RunContext ctx, Map<String, byte[]> datafiles)
+            throws ApplyAlterException, SQLException {
+        Connection connection = dbConn.getConnection();
+        String sql = getSqlStatement().trim();
+
+        PreparedStatement st = null;
+        try {
+            st = prepareStatement(connection, sql, datafiles, 0);
+            int rows = 0;
+            if (!st.execute()) // allows "with ... select ... update ..."
+            {
+                rows = st.getUpdateCount();
+            }
+            ctx.report(ReportLevel.STATEMENT_STEP, "statement executed, changed rows: %d%n", rows);
+        } finally {
+            DbUtils.close(st);
+        }
+
+    }
 
 }

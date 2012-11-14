@@ -4,88 +4,83 @@ package ch.ips.g2.applyalter;
  * Check type. The string values here are parts of DB2 selects (it used to be hardcoded here).
  */
 public enum CheckType {
-  /**
-   * Table 
-   */
-  table("tab"), 
-  /**
-   * View
-   */
-  view, 
-  /**
-   * Index
-   */
-  index("indexes", "ind", null), 
-  /**
-   * Routine (procedure, function, method)
-   */
-  routine,
-  
-  /**
-   * Trigger 
-   */
-  trigger("tab", "trigname"),
-  
-  /**
-   * foreign key
-   */
-  reference("tab", "constname"),
+    /**
+     * Table
+     */
+    table("tab"),
+    /**
+     * View
+     */
+    view,
+    /**
+     * Index
+     */
+    index("indexes", "ind", null),
+    /**
+     * Routine (procedure, function, method)
+     */
+    routine,
 
-  /**
-   * check constraint
-   */
-  check("tab", "constname"),
+    /**
+     * Trigger
+     */
+    trigger("tab", "trigname"),
 
-  /**
-   * database column
-   */
-  column("tab", "colname")
-  ;
-  
-  private String tbl;
-  private String abbr;
-  private String extra;
-  
-  private CheckType() {
-    this.abbr = this.name();
-    setTbl();
-  }
+    /**
+     * foreign key
+     */
+    reference("tab", "constname"),
 
-  private CheckType(String abbr) {
-    this.abbr = abbr;
-    setTbl();
-  }
+    /**
+     * check constraint
+     */
+    check("tab", "constname"),
 
-  private CheckType(String abbr, String extra) {
-    this.abbr = abbr;
-    this.extra = extra;
-    setTbl();
-  }
+    /**
+     * database column
+     */
+    column("tab", "colname");
 
-  private CheckType(String table, String abbr, String extra) {
-    this.tbl = table;
-    this.abbr = abbr;
-    this.extra = extra;
-  }
+    private String tbl;
+    private String abbr;
+    private String extra;
 
-  private void setTbl()
-  {
-    this.tbl = this.name() + "s";
-  }
+    private CheckType() {
+        this.abbr = this.name();
+        setTbl();
+    }
 
-  public String getTbl()
-  {
-    return tbl;
-  }
+    private CheckType(String abbr) {
+        this.abbr = abbr;
+        setTbl();
+    }
 
-  public String getAbbr()
-  {
-    return abbr;
-  }
-  
-  public String getExtra()
-  {
-    return extra;
-  }
+    private CheckType(String abbr, String extra) {
+        this.abbr = abbr;
+        this.extra = extra;
+        setTbl();
+    }
+
+    private CheckType(String table, String abbr, String extra) {
+        this.tbl = table;
+        this.abbr = abbr;
+        this.extra = extra;
+    }
+
+    private void setTbl() {
+        this.tbl = this.name() + "s";
+    }
+
+    public String getTbl() {
+        return tbl;
+    }
+
+    public String getAbbr() {
+        return abbr;
+    }
+
+    public String getExtra() {
+        return extra;
+    }
 
 }

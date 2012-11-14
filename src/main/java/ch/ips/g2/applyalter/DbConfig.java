@@ -1,4 +1,5 @@
 package ch.ips.g2.applyalter;
+
 import java.sql.Connection;
 import java.sql.SQLException;
 import java.util.ArrayList;
@@ -16,121 +17,111 @@ import java.util.Set;
  * @version $Id$
  */
 @SuppressWarnings({"ThrowableInstanceNeverThrown"})
-public class DbConfig
-{
-  protected String environment;
-  protected final List<DbInstance> instances;
-  protected final Set<String> knownDbTypes;
-  
-  /**
-   * fail with first exception or collect them and report at one 
-   */
-  protected boolean ignorefailures;
+public class DbConfig {
+    protected String environment;
+    protected final List<DbInstance> instances;
+    protected final Set<String> knownDbTypes;
 
-  public DbConfig( DbConfigFile dcf, boolean ignorefailures )
-  {
-    this(dcf.instances, ignorefailures );
-    this.environment = dcf.environment;
-  }
+    /**
+     * fail with first exception or collect them and report at one
+     */
+    protected boolean ignorefailures;
 
-  public DbConfig( List<DbInstance> configuredDatabases, boolean ignorefailures )
-  {
-    this.instances = new ArrayList<DbInstance>();
-    this.knownDbTypes = new HashSet<String>();
-    for ( DbInstance instance : configuredDatabases )
-    {
-      if ( instance.getType() != null )
-      {
-        knownDbTypes.add( instance.getType() );
-      }
-      if ( instance.isReal() )
-      {
-        instances.add( instance );
-        instance.getConnection();
-      }
+    public DbConfig(DbConfigFile dcf, boolean ignorefailures) {
+        this(dcf.instances, ignorefailures);
+        this.environment = dcf.environment;
     }
-    this.ignorefailures = ignorefailures;
-  }
 
-  /**
-   * Optional environment: any script with &lt;environment&gt; element will be executed only if this value
-   * is specified and equal. Attempt to execute such script without specified environement is error.
-   */
-  public String getEnvironment()
-  {
-    return environment;
-  }
-
-  public List<DbInstance> getEntries() {
-    return instances;
-  }
- 
-  public boolean isIgnorefailures()
-  {
-    return ignorefailures;
-  }
-
-  /**
-   * Close connections to all database instances
-   */
-  public void closeConnections() {
-    for (DbInstance i: instances )
-    {
-      i.closeConnection();
+    public DbConfig(List<DbInstance> configuredDatabases, boolean ignorefailures) {
+        this.instances = new ArrayList<DbInstance>();
+        this.knownDbTypes = new HashSet<String>();
+        for (DbInstance instance : configuredDatabases) {
+            if (instance.getType() != null) {
+                knownDbTypes.add(instance.getType());
+            }
+            if (instance.isReal()) {
+                instances.add(instance);
+                instance.getConnection();
+            }
+        }
+        this.ignorefailures = ignorefailures;
     }
-  }
 
-  /**
-   * Commit used connections
-   * @see DbInstance#markConnectionUsed()
-   * @see DbInstance#isUsed() 
-   * @throws ApplyAlterException if one or some of connection can not be commited
-   */
-  public void commitUsed(RunContext ctx) throws ApplyAlterException
-  {
-    commitRollbackUsed( ctx, true, "Commiting %s" );
-  }
+    /**
+     * Optional environment: any script with &lt;environment&gt; element will be executed only if this value
+     * is specified and equal. Attempt to execute such script without specified environement is error.
+     */
+    public String getEnvironment() {
+        return environment;
+    }
 
-  /**
-   * Rollback used connections
-   * @see DbInstance#markConnectionUsed()
-   * @see DbInstance#isUsed()
-   */
-  public void rollbackUsed(RunContext ctx) throws ApplyAlterException
-  {
-    commitRollbackUsed( ctx, false, "Rolling back %s" );
-  }
+    public List<DbInstance> getEntries() {
+        return instances;
+    }
 
-  private void commitRollbackUsed( RunContext ctx, boolean commit, String msgFormat )
-  {
-    ApplyAlterExceptions aae = new ApplyAlterExceptions(ignorefailures);
-    for ( DbInstance i: instances ) {
-      if (i.isUsed())
-        try {
-          ctx.report( ReportLevel.ALTER, msgFormat, i.getId() );
-          Connection connection = i.getConnection();
+    public boolean isIgnorefailures() {
+        return ignorefailures;
+    }
 
-          if ( commit )
-            connection.commit();
-          else
-            connection.rollback();
-
-        } catch (SQLException e) {
-          aae.addOrThrow(new ApplyAlterException("Error commiting", e));
+    /**
+     * Close connections to all database instances
+     */
+    public void closeConnections() {
+        for (DbInstance i : instances) {
+            i.closeConnection();
         }
     }
-    if (!aae.isEmpty())
-      throw aae;
-  }
 
-  /**
-   * Get all DbInstance types
-   * @return database types
-   */
-  public Set<String> getDbTypes()
-  {
-    return knownDbTypes;
-  }
+    /**
+     * Commit used connections
+     *
+     * @throws ApplyAlterException if one or some of connection can not be commited
+     * @see DbInstance#markConnectionUsed()
+     * @see DbInstance#isUsed()
+     */
+    public void commitUsed(RunContext ctx) throws ApplyAlterException {
+        commitRollbackUsed(ctx, true, "Commiting %s");
+    }
+
+    /**
+     * Rollback used connections
+     *
+     * @see DbInstance#markConnectionUsed()
+     * @see DbInstance#isUsed()
+     */
+    public void rollbackUsed(RunContext ctx) throws ApplyAlterException {
+        commitRollbackUsed(ctx, false, "Rolling back %s");
+    }
+
+    private void commitRollbackUsed(RunContext ctx, boolean commit, String msgFormat) {
+        ApplyAlterExceptions aae = new ApplyAlterExceptions(ignorefailures);
+        for (DbInstance i : instances) {
+            if (i.isUsed())
+                try {
+                    ctx.report(ReportLevel.ALTER, msgFormat, i.getId());
+                    Connection connection = i.getConnection();
+
+                    if (commit)
+                        connection.commit();
+                    else
+                        connection.rollback();
+
+                } catch (SQLException e) {
+                    aae.addOrThrow(new ApplyAlterException("Error commiting", e));
+                }
+        }
+        if (!aae.isEmpty())
+            throw aae;
+    }
+
+    /**
+     * Get all DbInstance types
+     *
+     * @return database types
+     */
+    public Set<String> getDbTypes() {
+        return knownDbTypes;
+    }
 
 
 }
