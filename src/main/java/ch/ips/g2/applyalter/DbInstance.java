@@ -175,7 +175,15 @@ public abstract class DbInstance {
         this.id = id;
     }
 
+    /**
+     * Get database type; either explicit one, or just {@link #getId()}.
+     *
+     * @return database type, should not be null
+     */
     public String getType() {
+        if (type == null) {
+            return getId();
+        }
         return type;
     }
 
