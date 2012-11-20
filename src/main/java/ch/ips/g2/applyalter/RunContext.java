@@ -16,6 +16,12 @@ public interface RunContext {
     RunMode getRunMode();
 
     /**
+     * Is the incremental mode on?
+     * @return yes or no
+     */
+    boolean isIncremental();
+
+    /**
      * Report activity to user. Uses {@link String#format(String, Object[])}  = printf.
      *
      * @param level  report level

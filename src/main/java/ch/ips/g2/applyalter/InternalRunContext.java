@@ -11,6 +11,13 @@ class InternalRunContext implements RunContext {
         return RunMode.SHARP;
     }
 
+    /**
+     * Internal alterscripts are always executed straight on.
+     */
+    public boolean isIncremental() {
+        return false;
+    }
+
     public void report(ReportLevel level, String format, Object... args) {
         //skip
     }

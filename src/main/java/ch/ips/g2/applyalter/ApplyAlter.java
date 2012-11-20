@@ -560,7 +560,7 @@ public class ApplyAlter {
      *         false = execute it
      */
     boolean checkInc(Alter alter, DbInstance d, Connection c) {
-        if (!isIncrimental) {
+        if (!runContext.isIncremental()) {
             // continue with checks
             return false;
         }
@@ -685,8 +685,6 @@ public class ApplyAlter {
         return s.toString();
     }
 
-    static boolean isIncrimental = false;
-
     /**
      * Main function, which can be called from command line.
      *
@@ -708,6 +706,7 @@ public class ApplyAlter {
         boolean printstacktrace = false;
         boolean validateXml = true;
         boolean useLogTable;
+        boolean isIncrimental = false;
         RunMode rnmd = RunMode.SHARP;
 
         try {
@@ -746,6 +745,7 @@ public class ApplyAlter {
 
             PrintWriterRunContext rctx = PrintWriterRunContext.createStdInstance();
             rctx.setRunMode(rnmd);
+            rctx.setIncremental(isIncrimental);
 
             // go
             rctx.report(MAIN, "ApplyAlter started");

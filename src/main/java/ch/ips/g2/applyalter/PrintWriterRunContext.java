@@ -13,6 +13,7 @@ import java.util.Date;
  */
 public class PrintWriterRunContext implements RunContext {
     protected RunMode runMode = RunMode.SHARP;
+    private boolean incremental;
     protected PrintWriter stdout, stderr;
 
     /**
@@ -29,6 +30,13 @@ public class PrintWriterRunContext implements RunContext {
         this.runMode = runMode;
     }
 
+    public boolean isIncremental() {
+        return incremental;
+    }
+
+    public void setIncremental(boolean incremental) {
+        this.incremental = incremental;
+    }
 
     /**
      * Create instance with custom print writers.
