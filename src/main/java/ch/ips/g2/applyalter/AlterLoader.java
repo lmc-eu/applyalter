@@ -262,16 +262,10 @@ public class AlterLoader {
         List<Alter> a = new ArrayList<Alter>(alterNames.size());
         Collections.sort(alterNames);
 
-        String base = "jar:" + zipfile + "!/";
         for (String alterName : alterNames) {
-            try {
-                URL alterUrl = new URL(base + alterName);
-                AlterSource source = new UrlSource(alterUrl);
-                Alter alterscript = parseScriptFile(alterName, source);
-                a.add(alterscript);
-            } catch (MalformedURLException e) {
-                throw new ApplyAlterException("Error reading " + alterName + " from zip file " + zipfile, e);
-            }
+            AlterSource source = new JarUrlSource(zipfile, alterName);
+            Alter alterscript = parseScriptFile(alterName, source);
+            a.add(alterscript);
         }
 
         return a;
@@ -323,6 +317,9 @@ public class AlterLoader {
 
     /**
      * Alterscript loaded from url, data files are in the same directory.
+     * <br />
+     * Warning: this implementation supports only non-opaque URLs.
+     * In particular, urls with jar: schema do not work correctly.
      */
     public static class UrlSource implements AlterSource {
         private URL url;
@@ -344,6 +341,49 @@ public class AlterLoader {
             } catch (URISyntaxException e) {
                 throw new IOException(e);
             }
+        }
+    }
+
+    /**
+     * Alterscript loaded from inside of JAR (which is referenced by URL).
+     */
+    public static class JarUrlSource implements AlterSource {
+        private final URL jarUrl;
+        /**
+         * Entry path: always absolute!
+         */
+        private final URI entryPath;
+
+        public JarUrlSource(URL jarUrl, String path) {
+            this.jarUrl = jarUrl;
+            this.entryPath = URI.create(path.startsWith("/") ? path : "/" + path);
+        }
+
+        public URI getEntryPath() {
+            return entryPath;
+        }
+
+        public InputStream openScript()
+                throws IOException {
+            return makeURL(entryPath).openStream();
+        }
+
+        /**
+         * Compose JAR url (made from jar file url, exclamation point and internal path).
+         *
+         * @param entryPath entry path (must be absolute)
+         * @return final URL
+         */
+        private URL makeURL(URI entryPath) throws MalformedURLException {
+            assert entryPath.isAbsolute();
+            return new URL("jar:" + jarUrl + "!" + entryPath);
+        }
+
+        public InputStream openDataFile(String filename)
+                throws IOException {
+            //note: resolution must be done on the internal part, without the external zipfile path!
+            URI dataEntryPath = getEntryPath().resolve(filename);
+            return makeURL(dataEntryPath).openStream();
         }
     }
 
