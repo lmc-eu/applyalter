@@ -48,7 +48,7 @@ public class Db2Native extends Db2Instance {
      * {@link DriverManager#getConnection(String)} is called. DB2 will then use system user.
      */
     @Override
-    protected Connection connect(String url)
+    protected Connection connect(String url, RunContext ctx)
             throws SQLException {
         try {
             if (driver != null) {

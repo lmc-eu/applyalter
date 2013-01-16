@@ -27,12 +27,12 @@ public class DbConfig {
      */
     protected boolean ignorefailures;
 
-    public DbConfig(DbConfigFile dcf, boolean ignorefailures) {
-        this(dcf.instances, ignorefailures);
+    public DbConfig(DbConfigFile dcf, boolean ignorefailures, RunContext ctx) {
+        this(dcf.instances, ignorefailures, ctx);
         this.environment = dcf.environment;
     }
 
-    public DbConfig(List<DbInstance> configuredDatabases, boolean ignorefailures) {
+    public DbConfig(List<DbInstance> configuredDatabases, boolean ignorefailures, RunContext ctx) {
         this.instances = new ArrayList<DbInstance>();
         this.knownDbTypes = new HashSet<String>();
         for (DbInstance instance : configuredDatabases) {
@@ -41,7 +41,7 @@ public class DbConfig {
             }
             if (instance.isReal()) {
                 instances.add(instance);
-                instance.getConnection();
+                instance.getConnection(ctx);
             }
         }
         this.ignorefailures = ignorefailures;
@@ -76,7 +76,7 @@ public class DbConfig {
      * Commit used connections
      *
      * @throws ApplyAlterException if one or some of connection can not be commited
-     * @see DbInstance#markConnectionUsed()
+     * @see DbInstance#getConnection(RunContext)
      * @see DbInstance#isUsed()
      */
     public void commitUsed(RunContext ctx) throws ApplyAlterException {
@@ -86,7 +86,7 @@ public class DbConfig {
     /**
      * Rollback used connections
      *
-     * @see DbInstance#markConnectionUsed()
+     * @see DbInstance#getConnection(RunContext)
      * @see DbInstance#isUsed()
      */
     public void rollbackUsed(RunContext ctx) throws ApplyAlterException {
@@ -99,7 +99,7 @@ public class DbConfig {
             if (i.isUsed())
                 try {
                     ctx.report(ReportLevel.ALTER, msgFormat, i.getId());
-                    Connection connection = i.getConnection();
+                    Connection connection = i.getConnection(ctx);
 
                     if (commit)
                         connection.commit();

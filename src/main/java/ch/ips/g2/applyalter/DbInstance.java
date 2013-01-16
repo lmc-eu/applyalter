@@ -112,12 +112,13 @@ public abstract class DbInstance {
      *
      * @return connection to this database instance
      * @throws ApplyAlterException if connection could not be acquired
+     * @param ctx
      */
-    public Connection getConnection() throws ApplyAlterException {
+    public Connection getConnection(RunContext ctx) throws ApplyAlterException {
         if (con == null) {
             String url = getUrl();
             try {
-                con = connect(url);
+                con = connect(url, ctx);
                 con.setAutoCommit(false);
             } catch (SQLException e) {
                 throw new ApplyAlterException("Can not acquire db connection for " + url, e);
@@ -127,15 +128,17 @@ public abstract class DbInstance {
     }
 
     /**
-     * The real implementation of {@link #getConnection()}. Default implementation just calls
+     * The real implementation of {@link #getConnection(RunContext)}. Default implementation just calls
      * {@link DriverManager#getConnection(String, String, String)}, subclass can obtain the connection
      * by some other way.
      *
+     *
      * @param url JDBC url, made by {@link #getUrl()}
+     * @param ctx
      * @return new connection
      * @throws SQLException error getting connection
      */
-    protected Connection connect(String url)
+    protected Connection connect(String url, RunContext ctx)
             throws SQLException {
         return DriverManager.getConnection(url, user, pass);
     }
@@ -145,10 +148,10 @@ public abstract class DbInstance {
      *
      * @return connection to this database instance
      * @throws ApplyAlterException if connection could not be acquired
-     * @see #getConnection()
+     * @see #getConnection(RunContext)
      */
-    public Connection markConnectionUsed() throws ApplyAlterException {
-        Connection c = getConnection();
+    public Connection markConnectionUsed(RunContext ctx) throws ApplyAlterException {
+        Connection c = getConnection(ctx);
         used = true;
         return c;
     }

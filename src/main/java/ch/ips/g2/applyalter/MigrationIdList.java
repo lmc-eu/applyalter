@@ -126,7 +126,7 @@ public class MigrationIdList extends AbstractMigration {
         ctx.report(STATEMENT_STEP, "creating temporary table %s", tableName);
 
         try {
-            final Connection connection = dbConn.getConnection();
+            final Connection connection = dbConn.getConnection(ctx);
 
             //step 1: create temporary table with the columns of query
             String sql = String.format(SQL_CREATE_TEMPORARY_TABLE, tableName, getIdquery().trim());
@@ -151,7 +151,7 @@ public class MigrationIdList extends AbstractMigration {
         checkParameters();
 
         //ensure that everything is committed before migration
-        final Connection connection = dbConn.getConnection();
+        final Connection connection = dbConn.getConnection(ctx);
         commitStep(ctx, connection);
 
         //create temporary table, empty

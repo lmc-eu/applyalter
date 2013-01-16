@@ -33,10 +33,10 @@ public class OracleInstance extends DbInstance {
     }
 
     @Override
-    public Connection getConnection()
+    public Connection getConnection(RunContext ctx)
             throws ApplyAlterException {
         initDriver();
-        return super.getConnection();
+        return super.getConnection(ctx);
     }
 
     /**

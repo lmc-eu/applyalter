@@ -52,7 +52,7 @@ public class CSV extends AbstractStatement {
 
     public void execute(DbInstance dbConn, RunContext ctx, Map<String, byte[]> datafiles)
             throws ApplyAlterException, SQLException {
-        Connection connection = dbConn.getConnection();
+        Connection connection = dbConn.getConnection(ctx);
         String sql = getSqlStatement().trim();
 
         final byte[] rawFile = datafiles.get(getFile());

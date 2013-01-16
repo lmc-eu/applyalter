@@ -124,7 +124,7 @@ public class MigrationProc extends AbstractMigration {
 
     public void execute(DbInstance dbConn, RunContext mode, Map<String, byte[]> datafiles)
             throws ApplyAlterException, SQLException {
-        Connection connection = dbConn.getConnection();
+        Connection connection = dbConn.getConnection(mode);
 
         PreparedStatement st = null;
         try {

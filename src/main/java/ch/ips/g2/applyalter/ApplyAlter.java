@@ -147,7 +147,7 @@ public class ApplyAlter {
         try {
             fis = new FileInputStream(dbconfigfile);
             DbConfigFile dcf = (DbConfigFile) xstream.fromXML(fis);
-            db = new DbConfig(dcf, ignorefailures);
+            db = new DbConfig(dcf, ignorefailures, runContext);
             if (validateXml) {
                 this.validator = readXsd(runContext);
             }
@@ -438,7 +438,7 @@ public class ApplyAlter {
                 long start = System.currentTimeMillis();
                 String dbid = d.getId();
                 try {
-                    Connection c = d.getConnection();
+                    Connection c = d.getConnection(runContext);
                     runContext.report(DETAIL, "Database instance %s %s, schema %s", dbid, d.getUrl(), a.getSchema());
                     d.setSchema(a.getSchema());
                     d.setIsolation(a.getIsolation());
@@ -455,7 +455,7 @@ public class ApplyAlter {
                         unapplied.put(d.getId(), a.getId());
                         continue;
                     }
-                    d.markConnectionUsed();
+                    d.markConnectionUsed(runContext);
                     // for all alter statements
                     for (AlterStatement s : a.getStatements()) {
                         //print to user
@@ -494,7 +494,7 @@ public class ApplyAlter {
         if (db.isSavepointNeededForIgnoredFailure() &&
                 (s.canFail() || s.getIgnoredSqlStates() != null || s.getIgnoredSqlCodes() != null)) {
             try {
-                savepoint = db.getConnection().setSavepoint();
+                savepoint = db.getConnection(runContext).setSavepoint();
             } catch (SQLException e) {
                 throw new ApplyAlterException(e.getMessage(), e);
             }
@@ -522,7 +522,7 @@ public class ApplyAlter {
             //ok, error ignored; rollback to savepoint
             if (savepoint != null) {
                 try {
-                    db.getConnection().rollback(savepoint);
+                    db.getConnection(runContext).rollback(savepoint);
                 } catch (SQLException e1) {
                     //ignore e1
                     throw new ApplyAlterException(e.getMessage(), e);
@@ -615,7 +615,7 @@ public class ApplyAlter {
      * @param time alter duration
      */
     protected void savelog(DbInstance d, String dbid, String id, long time, String hash) {
-        Connection c = d.getConnection();
+        Connection c = d.getConnection(runContext);
         runContext.report(ALTER, "Alter %s on %s took %s ms", id, dbid, time);
 
         if (runContext.getRunMode() != RunMode.SHARP || !isLogTableUsed()) {
@@ -647,7 +647,7 @@ public class ApplyAlter {
      */
     public Set<String> getApplyAlterLog(DbInstance d) {
         Set<String> result = new HashSet<String>();
-        Connection c = d.getConnection();
+        Connection c = d.getConnection(runContext);
         PreparedStatement s = null;
         ResultSet r = null;
         try {

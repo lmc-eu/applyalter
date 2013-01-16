@@ -118,7 +118,7 @@ public class MigrationIdRange extends AbstractMigration {
 
     public void execute(DbInstance dbConn, RunContext ctx, Map<String, byte[]> datafiles)
             throws ApplyAlterException, SQLException {
-        Connection connection = dbConn.getConnection();
+        Connection connection = dbConn.getConnection(ctx);
 
         PreparedStatement st = null;
         try {
