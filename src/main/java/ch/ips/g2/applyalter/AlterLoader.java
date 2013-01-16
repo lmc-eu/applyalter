@@ -8,12 +8,17 @@ import org.xml.sax.SAXException;
 import javax.xml.transform.stream.StreamSource;
 import javax.xml.validation.Validator;
 import java.io.*;
+import java.net.MalformedURLException;
+import java.net.URI;
+import java.net.URISyntaxException;
+import java.net.URL;
 import java.security.DigestInputStream;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.util.*;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipFile;
+import java.util.zip.ZipInputStream;
 
 public class AlterLoader {
     /**
@@ -36,12 +41,28 @@ public class AlterLoader {
     public List<Alter> loadAlters(String... filenames) {
         List<Alter> a = new ArrayList<Alter>(filenames.length);
         for (String f : filenames) {
+
+            final boolean isZip;
             if (f.endsWith(ApplyAlter.XML_SUFFIX)) {
-                a.add(fromFile(f));
+                isZip = false;
             } else if (f.endsWith(ApplyAlter.ZIP_SUFFIX)) {
-                a.addAll(fromZip(f));
+                isZip = true;
             } else {
                 throw new ApplyAlterException("Unknown filetype " + f);
+            }
+
+            if (f.contains("://")) {
+                final URL url;
+                try {
+                    url = new URL(f);
+                } catch (MalformedURLException e) {
+                    throw new ApplyAlterException("invalid URL: " + f, e);
+                }
+                a.addAll(loadUrl(url, isZip));
+            } else {
+                //file
+                final File file = new File(f);
+                a.addAll(loadFile(file, isZip));
             }
         }
         return a;
@@ -144,11 +165,28 @@ public class AlterLoader {
      * @throws ch.ips.g2.applyalter.ApplyAlterException
      *          if file can not be found
      */
-    protected Alter fromFile(String file)
-            throws ApplyAlterException {
-        AlterSource source = new FileSource(new File(file));
-        return parseScriptFile(file, source);
+    private Collection<? extends Alter> loadFile(File file, boolean zip) {
+        if (!file.exists())
+            throw new ApplyAlterException("file does not exist: " + file);
+
+        if (zip) {
+            return loadZip(file);
+        } else {
+            final AlterSource source = new FileSource(file);
+            return Collections.singletonList(parseScriptFile(file.toString(), source));
+        }
+
     }
+
+    private Collection<? extends Alter> loadUrl(URL url, boolean zip) {
+        if (zip) {
+            return loadZip(url);
+        } else {
+            final AlterSource source = new UrlSource(url);
+            return Collections.singletonList(parseScriptFile(url.toString(), source));
+        }
+    }
+
 
     /**
      * Create a list of Alter instances from XML serialized from files stored in .zip.
@@ -158,8 +196,9 @@ public class AlterLoader {
      * @return list of new Alter instances
      * @throws ch.ips.g2.applyalter.ApplyAlterException
      *          if error occurs during zip file processing
+     *          TODO: replace by {@link #loadZip(java.net.URL)}
      */
-    protected List<Alter> fromZip(String zipfile) {
+    protected List<Alter> loadZip(File zipfile) {
         try {
             final ZipFile z = new ZipFile(zipfile);
             List<ZipEntry> alterEntries = new ArrayList<ZipEntry>();
@@ -190,6 +229,52 @@ public class AlterLoader {
         } catch (IOException e) {
             throw new ApplyAlterException("Error reading zip file " + zipfile, e);
         }
+    }
+
+    /**
+     * Create a list of Alter instances from XML serialized from files stored in .zip.
+     * List is sorted using {@link ch.ips.g2.applyalter.ZipEntryNameComparator}.
+     *
+     * @param zipfile zip file containing XML files
+     * @return list of new Alter instances
+     * @throws ch.ips.g2.applyalter.ApplyAlterException
+     *          if error occurs during zip file processing
+     */
+    protected List<Alter> loadZip(URL zipfile) {
+        final List<String> alterNames;
+        try {
+            final ZipInputStream zis = new ZipInputStream(zipfile.openStream());
+            alterNames = new ArrayList<String>();
+
+            ZipEntry entry;
+            while ((entry = zis.getNextEntry()) != null) {
+                if (entry.isDirectory())
+                    continue;
+                final String entryName = entry.getName();
+                if (entryName.endsWith(ApplyAlter.XML_SUFFIX)) {
+                    alterNames.add(entryName);
+                }
+            }
+        } catch (IOException e) {
+            throw new ApplyAlterException("Error reading zip file " + zipfile, e);
+        }
+
+        List<Alter> a = new ArrayList<Alter>(alterNames.size());
+        Collections.sort(alterNames);
+
+        String base = "jar:" + zipfile + "!/";
+        for (String alterName : alterNames) {
+            try {
+                URL alterUrl = new URL(base + alterName);
+                AlterSource source = new UrlSource(alterUrl);
+                Alter alterscript = parseScriptFile(alterName, source);
+                a.add(alterscript);
+            } catch (MalformedURLException e) {
+                throw new ApplyAlterException("Error reading " + alterName + " from zip file " + zipfile, e);
+            }
+        }
+
+        return a;
     }
 
     //-----------------------------------------------------------------------------------------------------------------
@@ -235,6 +320,33 @@ public class AlterLoader {
             return new FileInputStream(dataFile);
         }
     }
+
+    /**
+     * Alterscript loaded from url, data files are in the same directory.
+     */
+    public static class UrlSource implements AlterSource {
+        private URL url;
+
+        public UrlSource(URL url) {
+            this.url = url;
+        }
+
+        public InputStream openScript()
+                throws IOException {
+            return url.openStream();
+        }
+
+        public InputStream openDataFile(String filename)
+                throws IOException {
+            try {
+                URI relative = url.toURI().resolve(filename);
+                return relative.toURL().openStream();
+            } catch (URISyntaxException e) {
+                throw new IOException(e);
+            }
+        }
+    }
+
 
     /**
      * Alterscript loaded ZIP archive, data files are in the same archive (note: only root level is supported).
