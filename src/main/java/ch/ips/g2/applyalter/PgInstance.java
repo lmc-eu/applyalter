@@ -1,11 +1,13 @@
 package ch.ips.g2.applyalter;
 
+import com.google.common.annotations.VisibleForTesting;
 import com.thoughtworks.xstream.annotations.XStreamAlias;
 import org.apache.commons.io.IOUtils;
 
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
+import java.io.InputStream;
 import java.sql.Connection;
 import java.sql.SQLException;
 import java.util.List;
@@ -98,7 +100,7 @@ public class PgInstance extends DbInstance {
             throws SQLException {
         if (getPass() == null || getPass().trim().length() < 1) {
             //read password from the pgpass file; see http://www.postgresql.org/docs/current/static/libpq-pgpass.html
-            loadPgpass(ctx);
+            loadPgpass(ctx, findPgpassFile(ctx));
         }
 
         final Connection con = super.connect(url, ctx);
@@ -124,17 +126,15 @@ public class PgInstance extends DbInstance {
      * matching line and if found, set password via {@link #setPass(String)}
      * @param runContext context (used by logging)
      */
-    private void loadPgpass(RunContext runContext) {
-        File pgpassFile = findPgpassFile(runContext);
-        if (pgpassFile == null)
+    @VisibleForTesting void loadPgpass(RunContext runContext, InputStream pgpassInputStream) {
+        if (pgpassInputStream == null)
             return;
-        runContext.report(ReportLevel.MAIN, "loading password file: %s", pgpassFile);
         //load whole file at once
         final List<String> lines;
         try {
-            lines = IOUtils.readLines(new FileInputStream(pgpassFile), "UTF-8");
+            lines = IOUtils.readLines(pgpassInputStream, "UTF-8");
         } catch (IOException e) {
-            runContext.report(ReportLevel.FATAL, e, "error loading password file: %s", pgpassFile);
+            runContext.report(ReportLevel.FATAL, e, "error loading password file");
             return;
         }
         //and parse all lines until match is found
@@ -147,7 +147,7 @@ public class PgInstance extends DbInstance {
             //hostname:port:database:username:password
             final String[] split = line.split(":");
             if (split.length < 5) {
-                runContext.report(ReportLevel.ERROR, "invalid password file: %s (line %d)", pgpassFile, lineNum);
+                runContext.report(ReportLevel.ERROR, "invalid password file: (line %d)", lineNum);
                 continue;
             }
             if (!fieldMatch(split[0], getHost()))
@@ -160,6 +160,9 @@ public class PgInstance extends DbInstance {
             if (!fieldMatch(split[3], getUser()))
                 continue;
             //match found!
+            if (getUser() == null && !"*".equals(split[3])) {
+              setUser(split[3]);
+            }
             setPass(split[4]);
             runContext.report(ReportLevel.STATEMENT, "match found in password file for user %s", getUser());
             return;
@@ -179,20 +182,26 @@ public class PgInstance extends DbInstance {
 
     public static final String ENV_PGPASSFILE = "PGPASSFILE";
 
-    private File findPgpassFile(RunContext runContext) {
+    private InputStream findPgpassFile(RunContext runContext) {
         final String envVar = System.getenv(ENV_PGPASSFILE);
-        if (envVar != null) {
-            File f = new File(envVar);
-            if (f.exists() && f.isFile() && f.canRead()) {
-                return f;
-            }
-            runContext.report(ReportLevel.ERROR, "invalid content of environment variable: %s=%s", ENV_PGPASSFILE, envVar);
+        try {
+          if (envVar != null) {
+              File f = new File(envVar);
+              if (f.exists() && f.isFile() && f.canRead()) {
+                  runContext.report(ReportLevel.MAIN, "loading password file: %s", f);
+                  return new FileInputStream(f);
+              }
+              runContext.report(ReportLevel.ERROR, "invalid content of environment variable: %s=%s", ENV_PGPASSFILE, envVar);
+          }
+          File f = new File(System.getProperty("user.home"), ".pgpass");
+          if (f.exists() && f.isFile() && f.canRead()) {
+              runContext.report(ReportLevel.MAIN, "loading password file: %s", f);
+              return new FileInputStream(f);
+          }
+          runContext.report(ReportLevel.DETAIL, "missing password file %s", f);
+        } catch (IOException ioe) {
+          runContext.report(ReportLevel.FATAL, ioe, "cannot read password file.");
         }
-        File f = new File(System.getProperty("user.home"), ".pgpass");
-        if (f.exists() && f.isFile() && f.canRead()) {
-            return f;
-        }
-        runContext.report(ReportLevel.DETAIL, "missing password file %s", f);
         return null;
     }
 
