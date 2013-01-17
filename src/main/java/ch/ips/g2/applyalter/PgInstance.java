@@ -96,8 +96,8 @@ public class PgInstance extends DbInstance {
     @Override
     protected Connection connect(String url, RunContext ctx)
             throws SQLException {
-        if (getUser() == null || getUser().trim().length() < 1) {
-            //read the pgpass file; see http://www.postgresql.org/docs/8.1/static/libpq-pgpass.html
+        if (getPass() == null || getPass().trim().length() < 1) {
+            //read password from the pgpass file; see http://www.postgresql.org/docs/current/static/libpq-pgpass.html
             loadPgpass(ctx);
         }
 
@@ -119,6 +119,11 @@ public class PgInstance extends DbInstance {
     }
 
 
+    /**
+     * Load and parse <a href="http://www.postgresql.org/docs/current/static/libpq-pgpass.html">pgpass file</a>, try to find
+     * matching line and if found, set password via {@link #setPass(String)}
+     * @param runContext context (used by logging)
+     */
     private void loadPgpass(RunContext runContext) {
         File pgpassFile = findPgpassFile(runContext);
         if (pgpassFile == null)
@@ -135,8 +140,8 @@ public class PgInstance extends DbInstance {
         //and parse all lines until match is found
         for (int lineNum = 0, linesSize = lines.size(); lineNum < linesSize; lineNum++) {
             String line = lines.get(lineNum).trim();
-            if (line.length() < 1) {
-                //empty line
+            if (line.length() < 1 || line.startsWith("#")) {
+                //empty line or comment
                 continue;
             }
             //hostname:port:database:username:password
@@ -152,10 +157,11 @@ public class PgInstance extends DbInstance {
                 continue;
             if (!fieldMatch(split[2], getDb()))
                 continue;
+            if (!fieldMatch(split[3], getUser()))
+                continue;
             //match found!
-            setUser(split[3]);
             setPass(split[4]);
-            runContext.report(ReportLevel.STATEMENT, "match found in password file: user %s", getUser());
+            runContext.report(ReportLevel.STATEMENT, "match found in password file for user %s", getUser());
             return;
         }
     }
