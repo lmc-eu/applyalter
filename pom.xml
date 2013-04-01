@@ -87,6 +87,42 @@
 
     </dependencies>
 
+    <profiles>
+        <!--
+         These profiles are activated to include (embed) JDBC driver inside resulting artifact.
+         They are not enabled by default, because this might violate licence, make the project unbuildable (db2 jdbc
+         is not publicly available) and might have issues with compatability.
+         -->
+        <profile>
+            <id>embed_db2_9.7</id>
+            <dependencies>
+                <dependency>
+                    <groupId>com.ibm.db2</groupId>
+                    <artifactId>db2jcc4</artifactId>
+                    <version>9.7.6</version>
+                    <scope>runtime</scope>
+                </dependency>
+                <dependency>
+                    <groupId>com.ibm.db2</groupId>
+                    <artifactId>db2jcc_license_cu</artifactId>
+                    <version>9.7</version>
+                    <scope>runtime</scope>
+                </dependency>
+            </dependencies>
+        </profile>
+        <profile>
+            <id>embed_postgresql_8</id>
+            <dependencies>
+                <dependency>
+                    <groupId>postgresql</groupId>
+                    <artifactId>postgresql</artifactId>
+                    <version>8.3-603.jdbc4</version>
+                    <scope>runtime</scope>
+                </dependency>
+            </dependencies>
+        </profile>
+    </profiles>
+
     <!-- ========================================================================================================= -->
 
     <build>
