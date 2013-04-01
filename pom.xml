@@ -4,7 +4,7 @@
     <modelVersion>4.0.0</modelVersion>
     <groupId>eu.lmc.tools</groupId>
     <artifactId>applyalter</artifactId>
-    <version>12.11-SNAPSHOT</version>
+    <version>public2.0</version>
     <name>applyalter</name>
 
     <properties>
