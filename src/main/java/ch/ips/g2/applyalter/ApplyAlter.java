@@ -783,7 +783,7 @@ public class ApplyAlter {
             List<String> keys = new ArrayList<String>();
             for (Object key : a.keySet()) {
                 final String lk = key.toString().toLowerCase();
-                if (lk.startsWith("hudson") || lk.startsWith("jenking") || lk.startsWith("git"))
+                if (lk.startsWith("hudson") || lk.startsWith("jenkins") || lk.startsWith("git"))
                     keys.add(key.toString());
             }
             Collections.sort(keys);
