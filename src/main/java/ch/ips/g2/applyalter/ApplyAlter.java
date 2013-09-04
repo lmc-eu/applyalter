@@ -45,9 +45,14 @@ public class ApplyAlter {
      */
     public static final String RUN_MODE = "r";
     /**
-     * Incremental mode parameter name
+     * Incremental/synchronization mode.
+     * Note: this is default, but still
      */
     public static final String INC_MODE = "s";
+    /**
+     * Disable incremental/synchronization mode - execute single script repeatedly.
+     */
+    public static final String NONINC_MODE = "S";
     /**
      * Ignore failures parameter name
      */
@@ -699,14 +704,15 @@ public class ApplyAlter {
         o.addOption(ENVIRONMENT_OPT, true, "environment");
         o.addOption(NO_VALIDATE_XML, false, "disables XML file with alter script validation");
         o.addOption(NO_LOG_TABLE, false, "disables log table");
-        o.addOption(INC_MODE, false, "incremental mode");
+        o.addOption(INC_MODE, false, "incremental mode (enabled by default)");
+        o.addOption(NONINC_MODE, false, "disable incremental mode (enable repeated mode)");
         o.addOption("V", "version", false, "version");
 
         boolean ignfail = false;
         boolean printstacktrace = false;
         boolean validateXml = true;
         boolean useLogTable;
-        boolean isIncrimental = false;
+        final boolean isIncrimental;
         RunMode rnmd = RunMode.SHARP;
 
         try {
@@ -731,8 +737,14 @@ public class ApplyAlter {
             printstacktrace = cmd.hasOption(PRINTSTACKTRACE);
             validateXml = !cmd.hasOption(NO_VALIDATE_XML);
             useLogTable = !cmd.hasOption(NO_LOG_TABLE);
-            isIncrimental = cmd.hasOption(INC_MODE);
             String env = cmd.getOptionValue(ENVIRONMENT_OPT);
+
+            //note: incremental mode is enabled by default, disabled by special option
+            isIncrimental = !cmd.hasOption(NONINC_MODE);
+            //backward-compatible option (-s)
+            if (cmd.hasOption(INC_MODE) && cmd.hasOption(NONINC_MODE)) {
+                throw new UnrecognizedOptionException("Options `-s' and `-S' are mutually exclusive ");
+            }
 
             String[] a = cmd.getArgs();
             if (a.length < 1) {
@@ -752,6 +764,9 @@ public class ApplyAlter {
             rctx.report(MAIN, "run mode: %s", rnmd);
             rctx.report(MAIN, "ignore failures: %s", ignfail);
             rctx.report(MAIN, "print stacktrace: %s", printstacktrace);
+            rctx.report(MAIN, "incremental mode: %s",
+                    isIncrimental ? "enabled (synchronize)" : "disabled (repeated execution)"
+            );
 
             ApplyAlter applyAlter = new ApplyAlter(a[0], rctx, ignfail, username, validateXml, useLogTable, env);
             applyAlter.applyInternal();
@@ -764,6 +779,7 @@ public class ApplyAlter {
             final HelpFormatter helpFormatter = new HelpFormatter();
             helpFormatter.printHelp("applyalter [options] <dbconfig.xml> (alter.xml|alter.zip) ...", o, false);
             printVersion();
+            System.exit(-2);
         } catch (Throwable e) {
             if (e instanceof ApplyAlterException && (!printstacktrace || ignfail))
                 ((ApplyAlterException) e).printMessages(System.err);
