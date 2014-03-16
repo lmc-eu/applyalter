@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset='utf-8'>
+    <meta http-equiv="X-UA-Compatible" content="chrome=1">
+
+    <link rel="stylesheet" type="text/css" href="stylesheets/stylesheet.css" media="screen" />
+    <link rel="stylesheet" type="text/css" href="stylesheets/pygment_trac.css" media="screen" />
+    <link rel="stylesheet" type="text/css" href="stylesheets/print.css" media="print" />
+
+    <title>Applyalter by lmc-eu</title>
+  </head>
+
+  <body>
+
+    <header>
+      <div class="container">
+        <h1>Applyalter</h1>
+        <h2>Tool for applying alterscripts containing both DDL and DML</h2>
+
+        <section id="downloads">
+          <a href="https://github.com/lmc-eu/applyalter/zipball/master" class="btn">Download as .zip</a>
+          <a href="https://github.com/lmc-eu/applyalter/tarball/master" class="btn">Download as .tar.gz</a>
+          <a href="https://github.com/lmc-eu/applyalter" class="btn btn-github"><span class="icon"></span>View on GitHub</a>
+        </section>
+      </div>
+    </header>
+
+    <div class="container">
+      <section id="main_content">
+        <h1>
+<a name="applyalter---tool-for-applying-alterscripts" class="anchor" href="#applyalter---tool-for-applying-alterscripts"><span class="octicon octicon-link"></span></a>ApplyAlter - tool for applying alterscripts</h1>
+
+<p>This tool allows easy and robust deployment process - both manual (releases handed to OPS) and automated (even continuous deployment, to limited extent). Unlike some more radical approaches, applyalter is designed for database-first design and fully supports data changes and migrations (ie not just DDL, but also DML).</p>
+
+<p>Main advantages over ".sql" scripts are:</p>
+
+<ul>
+<li>execute single file, zip archive or whole directory</li>
+<li>commands are executed in transaction (by default)</li>
+<li>in-build checks to skip creating already existing entities (tables, columns etc.)</li>
+<li>custom checks to skip changing already changed data</li>
+<li>each executed alterscript is logged to log table (with execution time, duration and checksum)</li>
+<li>fine-grained error control - by default every error is fatal, but some of them can be ignored for specific commands</li>
+<li>support for characters in any encoding (as long as it's well-formed XML)</li>
+<li>dry-run mode</li>
+<li>database identification in script metadata</li>
+<li>attached files (BLOB, CLOB or CSV parsed into columns)</li>
+<li>environment-only scripts</li>
+<li>special support for large-scale data changes that cannot fit into single transaction</li>
+<li>not tied to one specific database (used on db2, postgresql and oracle)</li>
+</ul>
+      </section>
+    </div>
+
+    
+  </body>
+</html>
