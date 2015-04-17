@@ -4,7 +4,7 @@
     <modelVersion>4.0.0</modelVersion>
     <groupId>eu.lmc.tools</groupId>
     <artifactId>applyalter</artifactId>
-    <version>public3.0</version>
+    <version>3.1</version>
     <name>applyalter</name>
 
     <properties>
@@ -121,6 +121,49 @@
                 </dependency>
             </dependencies>
         </profile>
+
+        <profile>
+            <id>package-deb</id>
+            <properties>
+                <destdir>/srv/applyalter</destdir>
+            </properties>
+            <build>
+                <plugins>
+                    <plugin>
+                        <artifactId>jdeb</artifactId>
+                        <groupId>org.vafer</groupId>
+                        <version>1.4</version>
+                        <executions>
+                            <execution>
+                                <phase>package</phase>
+                                <goals>
+                                    <goal>jdeb</goal>
+                                </goals>
+                                <configuration>
+                                    <verbose>true</verbose>
+                                    <attach>true</attach>
+                                    <snapshotExpand>true</snapshotExpand>
+                                    <controlDir>${basedir}/src/main/pkg/debian</controlDir>
+                                    <dataSet>
+                                        <data>
+                                            <src>${project.build.directory}/${project.build.finalName}.jar</src>
+                                            <type>file</type>
+                                            <dst>${destdir}/applyalter.jar</dst>
+                                            <mapper>
+                                                <type>perm</type>
+                                                <filemode>644</filemode>
+                                                <dirmode>755</dirmode>
+                                            </mapper>
+                                        </data>
+                                    </dataSet>
+                                </configuration>
+                            </execution>
+                        </executions>
+                    </plugin>
+                </plugins>
+            </build>
+        </profile>
+
     </profiles>
 
     <!-- ========================================================================================================= -->
