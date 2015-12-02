@@ -111,12 +111,34 @@
             </dependencies>
         </profile>
         <profile>
+            <id>embed_db2_10.5.0.6</id>
+            <dependencies>
+                <dependency>
+                    <groupId>com.ibm.db2</groupId>
+                    <artifactId>db2jcc4</artifactId>
+                    <version>10.5.0.6</version>
+                    <scope>runtime</scope>
+                </dependency>
+            </dependencies>
+        </profile>
+        <profile>
             <id>embed_postgresql_8</id>
             <dependencies>
                 <dependency>
                     <groupId>postgresql</groupId>
                     <artifactId>postgresql</artifactId>
                     <version>8.3-603.jdbc4</version>
+                    <scope>runtime</scope>
+                </dependency>
+            </dependencies>
+        </profile>
+        <profile>
+            <id>embed_postgresql_9.1</id>
+            <dependencies>
+                <dependency>
+                    <groupId>postgresql</groupId>
+                    <artifactId>postgresql</artifactId>
+                    <version>9.1-901-1.jdbc4</version>
                     <scope>runtime</scope>
                 </dependency>
             </dependencies>
