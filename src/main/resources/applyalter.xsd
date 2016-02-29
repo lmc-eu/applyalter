@@ -81,7 +81,23 @@
 
   <xs:element name="check">
     <xs:annotation>
-      <xs:documentation>Pomocí klauzulí check je možné specifikovat schéma a jméno pro: tabulku (table) / view / index / proceduru (routine) / trigger / cizí klíč (reference) / check / sloupce (column) jejíž existence je kontrolována (poslední tři vyžadují ještě uvedení jména tabulky). Přidáním atributu inverted s hodnotou true se smysl testu obrátí (tj. testuje neexistenci).</xs:documentation>
+      <xs:documentation>Check for existence of database entity; if it DOES exist, skip this alter completely.
+        This might be handy for CREATE XXXX alterscripts.
+
+        Proper usage is tricky to get right and therefore discouraged. Whenever possible, try to create robust
+        alterscript by ignoring error (canfail, ignore-sqlstate, ignore-sqlcode) and rely on incremental mode
+        for optimal performance.
+      </xs:documentation>
+      <xs:documentation>This XSD contains list of all possibly supported entities,
+        but only some of them are supported in all engines:
+         - table (attribute "name" contains table name)
+         - view (attribute "name" contains view name)
+         - column (two attributes required: "table" with table name and "name" with column name)
+         - index (two attributes required: "table" with table name and "name" with index name)
+
+        Other entities are generally supported only for DB2 and are checked by seleting from SYSCAT.XXXX table.
+        Some of them require attribute "table" (in particular: "column", "check", "reference") - check db2 manual.
+      </xs:documentation>
     </xs:annotation>
     <xs:complexType>
       <xs:attribute name="type" use="required" type="checktype" />
