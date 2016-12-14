@@ -721,7 +721,7 @@ public class ApplyAlter {
         o.addOption(RUN_MODE, true, "runmode, possible values: " + Arrays.toString(RunMode.values()));
         o.addOption(ENVIRONMENT_OPT, true, "environment");
         o.addOption(USER_NAME, true, "user name");
-        o.addOption(STRUCTURED_LOG, true, "write structured log report (xml or json, depending on suffix)");
+        o.addOption(STRUCTURED_LOG, true, "write structured log report (xml format)");
         o.addOption(NO_VALIDATE_XML, false, "disables XML file with alter script validation");
         o.addOption(NO_LOG_TABLE, false, "disables log table");
         o.addOption(INC_MODE, false, "incremental mode (enabled by default)");
@@ -787,7 +787,7 @@ public class ApplyAlter {
                     System.exit(-1);
                 } else {
                     //create context
-                    rctx = StructuredLog.create(fos, rctx, structuredLogFile.endsWith("json"));
+                    rctx = StructuredLog.create(fos, rctx);
                 }
             }
 
