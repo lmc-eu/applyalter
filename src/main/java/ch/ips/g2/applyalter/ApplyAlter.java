@@ -4,20 +4,33 @@ import com.google.common.collect.ArrayListMultimap;
 import com.google.common.collect.Multimap;
 import com.thoughtworks.xstream.XStream;
 import com.thoughtworks.xstream.XStreamException;
-import org.apache.commons.cli.*;
+import org.apache.commons.cli.BasicParser;
+import org.apache.commons.cli.CommandLine;
+import org.apache.commons.cli.CommandLineParser;
+import org.apache.commons.cli.HelpFormatter;
+import org.apache.commons.cli.Options;
+import org.apache.commons.cli.UnrecognizedOptionException;
 import org.apache.commons.io.IOUtils;
-import org.xml.sax.SAXException;
 
-import javax.xml.transform.stream.StreamSource;
-import javax.xml.validation.Schema;
-import javax.xml.validation.SchemaFactory;
 import javax.xml.validation.Validator;
-import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.net.URL;
-import java.sql.*;
-import java.util.*;
+import java.sql.Connection;
+import java.sql.PreparedStatement;
+import java.sql.ResultSet;
+import java.sql.SQLException;
+import java.sql.Savepoint;
+import java.sql.Timestamp;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.HashSet;
+import java.util.Iterator;
+import java.util.List;
+import java.util.Set;
+import java.util.TreeSet;
 import java.util.jar.Attributes;
 import java.util.jar.JarFile;
 import java.util.jar.Manifest;
@@ -134,9 +147,9 @@ public class ApplyAlter {
      *
      * @param dbconfigfile   XML serialized {@link DbConfig} (database configuration)
      * @param runContext     execution context, providing methods to output the results and report the processing steps.
-     * @param ignorefailures
-     * @param username
-     * @param validateXml
+     * @param ignorefailures ignore all failures?
+     * @param username       username used for logging
+     * @param validateXml    should ve validate xml (by xsd)
      */
     @SuppressWarnings("unchecked")
     public ApplyAlter(String dbconfigfile, RunContext runContext, boolean ignorefailures, String username,
@@ -153,18 +166,16 @@ public class ApplyAlter {
             fis = new FileInputStream(dbconfigfile);
             DbConfigFile dcf = (DbConfigFile) xstream.fromXML(fis);
             db = new DbConfig(dcf, ignorefailures, runContext);
-            if (validateXml) {
-                this.validator = readXsd(runContext);
-            }
         } catch (FileNotFoundException e) {
             throw new ApplyAlterException("File not found " + dbconfigfile, e);
         } catch (XStreamException e) {
             throw new ApplyAlterException("Unable to deserialize DbConfig from file " + dbconfigfile, e);
-        } catch (SAXException e) {
-            throw new ApplyAlterException("Unable to initialize XML validator", e);
         } finally {
             IOUtils.closeQuietly(fis);
-//      BaseUtil.closeNoThrow( fis, "ApplyAlter" );
+        }
+
+        if (validateXml) {
+            this.validator = XsdValidatorUtil.readXsd(runContext);
         }
 
         determineEnvironment(runContext);
@@ -213,56 +224,6 @@ public class ApplyAlter {
     }
 
     /**
-     * Read XSD file applyalter.xsd and construct validator.
-     *
-     * @param runContext execution context, providing methods to output the results and report the processing steps.
-     * @throws SAXException
-     */
-    private Validator readXsd(RunContext runContext)
-            throws SAXException {
-        // 1. Lookup a factory for the W3C XML Schema language
-        SchemaFactory factory = SchemaFactory.newInstance("http://www.w3.org/2001/XMLSchema");
-
-        // 2. Compile the schema.
-        Schema schema = compileXMLSchema(runContext, factory);
-
-        // 3. Get a validator from the schema and return it.
-        return schema.newValidator();
-    }
-
-    /**
-     * Read XSD file and compile XML schema.
-     *
-     * @param runContext execution context, providing methods to output the results and report the processing steps.
-     * @param factory    factory that creates Schema objects. Entry-point to the validation API.
-     * @return Immutable in-memory representation of XML grammar.
-     * @throws SAXException
-     */
-    private Schema compileXMLSchema(RunContext runContext, SchemaFactory factory)
-            throws SAXException {
-        Schema schema = null;
-
-        try {
-            File schemaLocation = new File("applyalter.xsd");
-            schema = factory.newSchema(schemaLocation);
-            if (schema != null) {
-                runContext.report(MAIN, "applyalter.xsd successfuly read from file");
-            }
-        } catch (Exception e) {
-            //ignore exception
-            runContext.report(MAIN, "Cannot read applyalter.xsd from file, trying read it from applyalter.jar");
-        }
-        if (schema == null) {
-            StreamSource inputSource = new StreamSource(ApplyAlter.class.getResourceAsStream("/applyalter.xsd"));
-            schema = factory.newSchema(inputSource);
-            if (schema != null) {
-                runContext.report(MAIN, "applyalter.xsd read successfuly read from applyalter.jar");
-            }
-        }
-        return schema;
-    }
-
-    /**
      * Apply internal alterscripts.
      */
     protected void applyInternal() {
@@ -308,10 +269,10 @@ public class ApplyAlter {
     /**
      * Check if object exists in database, which means an alter was applied already.
      *
-     * @param d
+     * @param d database instance
      * @param c Connection to database
      * @param a check object @return true if object exists in database
-     * @throws ApplyAlterException
+     * @throws ApplyAlterException failed to check (database error?)
      */
     protected boolean check(DbInstance d, Connection c, Check a, String schema) throws ApplyAlterException {
         a.check();
@@ -330,7 +291,7 @@ public class ApplyAlter {
      * @param c   Connection to database
      * @param sql custom SQL statement
      * @return true if sql is not null and result of sql statement is equal {@link #CHECK_OK} value
-     * @throws ApplyAlterException
+     * @throws ApplyAlterException failed to check (database error?)
      */
     protected boolean check(Connection c, String sql) throws ApplyAlterException {
         if (sql == null || "".equals(sql.trim()))
@@ -530,6 +491,7 @@ public class ApplyAlter {
                     db.getConnection(runContext).rollback(savepoint);
                 } catch (SQLException e1) {
                     //ignore e1
+                    //noinspection ThrowInsideCatchBlockWhichIgnoresCaughtException
                     throw new ApplyAlterException(e.getMessage(), e);
                 }
             }
@@ -562,7 +524,7 @@ public class ApplyAlter {
      * Check incremental mode.
      *
      * @return true = this script has already been executed, skip it; <br />
-     *         false = execute it
+     * false = execute it
      */
     boolean checkInc(Alter alter, DbInstance d, Connection c) {
         if (!runContext.isIncremental()) {
@@ -646,9 +608,9 @@ public class ApplyAlter {
     /**
      * Get ids of applied alters read from log table
      *
-     * @param c database instance connection
+     * @param d database instance connection
      * @return id of alters applied in this database instance connection
-     *         (non null empty list if problem occurs)
+     * (non null empty list if problem occurs)
      */
     public Set<String> getApplyAlterLog(DbInstance d) {
         Set<String> result = new HashSet<String>();
@@ -693,7 +655,7 @@ public class ApplyAlter {
     /**
      * Main function, which can be called from command line.
      *
-     * @param args
+     * @param args commandline arguments
      */
     public static void main(String[] args) {
         Options o = new Options();
