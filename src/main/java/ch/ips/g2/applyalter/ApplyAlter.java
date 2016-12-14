@@ -10,6 +10,7 @@ import org.apache.commons.cli.BasicParser;
 import org.apache.commons.cli.CommandLine;
 import org.apache.commons.cli.CommandLineParser;
 import org.apache.commons.cli.HelpFormatter;
+import org.apache.commons.cli.MissingArgumentException;
 import org.apache.commons.cli.Options;
 import org.apache.commons.cli.UnrecognizedOptionException;
 import org.apache.commons.io.IOUtils;
@@ -91,6 +92,11 @@ public class ApplyAlter {
      * Structured report.
      */
     public static final String STRUCTURED_LOG = "l";
+    /**
+     * Quiet level.
+     */
+    public static final String QUIET_LEVEL = "q";
+    public static final String QUIET_LEVEL_LONG = "quiet";
     /**
      * XML validation on/off
      */
@@ -472,7 +478,7 @@ public class ApplyAlter {
                     // for all alter statements
                     for (final AlterStatement s : a.getStatements()) {
                         //print to user
-                        runContext.report(ReportLevel.STATEMENT, "%s", s);
+                        runContext.report(STATEMENT, "%s", s);
                         runContext.subreport("statement", new Runnable() {
                             public void run() {
                                 s.recordStructuredInfo(runContext);
@@ -536,19 +542,20 @@ public class ApplyAlter {
             } else
                 throw e;
         } catch (SQLException e) {
-            runContext.report(ReportLevel.ERROR, "database error: %s", e.getMessage());
-            runContext.reportProperty(ReportLevel.STATEMENT, "sqlcode", e.getErrorCode());
-            runContext.reportProperty(ReportLevel.STATEMENT, "sqlstate", e.getSQLState());
+            runContext.report(STATEMENT, "database error: %s", e.getMessage());
+            runContext.reportProperty(STATEMENT, "sqlcode", e.getErrorCode());
+            runContext.reportProperty(STATEMENT, "sqlstate", e.getSQLState());
             if (s.canFail()) {
-                runContext.report(ReportLevel.ERROR, "statement failed, ignoring: %s", e.getMessage());
+                runContext.report(STATEMENT, "statement failed, ignoring: %s", e.getMessage());
             } else if (s.getIgnoredSqlStates() != null && s.getIgnoredSqlStates().contains(e.getSQLState())) {
-                runContext.report(ReportLevel.ERROR, "statement failed with SQLSTATE=%s, ignoring: %s",
+                runContext.report(STATEMENT, "statement failed with SQLSTATE=%s, ignoring: %s",
                         e.getSQLState(), e.getMessage());
             } else if (s.getIgnoredSqlCodes() != null && s.getIgnoredSqlCodes().contains(e.getErrorCode())) {
-                runContext.report(ReportLevel.ERROR, "statement failed with SQLSTATE=%s, ignoring: %s",
+                runContext.report(STATEMENT, "statement failed with SQLSTATE=%s, ignoring: %s",
                         e.getSQLState(), e.getMessage());
-            } else
+            } else {
                 throw new ApplyAlterException(e.getMessage(), e);
+            }
 
             result = ReportedResult.FAILED_IGNORED;
 
@@ -737,6 +744,10 @@ public class ApplyAlter {
         o.addOption(RUN_MODE, true, "runmode, possible values: " + Arrays.toString(RunMode.values()));
         o.addOption(ENVIRONMENT_OPT, true, "environment");
         o.addOption(USER_NAME, true, "user name");
+        o.addOption(QUIET_LEVEL, QUIET_LEVEL_LONG, true,
+                "suppress messages of specified level and more detailed; possible values are "
+                        + Arrays.toString(ReportLevel.values())
+        );
         o.addOption(STRUCTURED_LOG, true, "write structured log report (xml format)");
         o.addOption(NO_VALIDATE_XML, false, "disables XML file with alter script validation");
         o.addOption(NO_LOG_TABLE, false, "disables log table");
@@ -784,6 +795,17 @@ public class ApplyAlter {
                 throw new UnrecognizedOptionException("Options `-s' and `-S' are mutually exclusive ");
             }
 
+            ReportLevel quietLevel = null;
+            try {
+                if (cmd.hasOption(QUIET_LEVEL)) {
+                    quietLevel = ReportLevel.valueOf(cmd.getOptionValue(QUIET_LEVEL).toUpperCase());
+                }
+            } catch (IllegalArgumentException ignored) {
+                throw new MissingArgumentException("invalid value for --" + QUIET_LEVEL_LONG
+                        + ", available ones: " + Arrays.toString(ReportLevel.values()));
+            }
+
+
             String[] a = cmd.getArgs();
             if (a.length < 1) {
                 throw new UnrecognizedOptionException("Not enough parameters (dbconfig.xml alterscripts...)");
@@ -793,7 +815,7 @@ public class ApplyAlter {
             String[] param = new String[a.length - 1];
             System.arraycopy(a, 1, param, 0, a.length - 1);
 
-            rctx = PrintWriterRunContext.createInstance(isIncrimental, rnmd);
+            rctx = PrintWriterRunContext.createInstance(isIncrimental, rnmd, quietLevel);
 
             String structuredLogFile = cmd.getOptionValue(STRUCTURED_LOG);
             if (structuredLogFile != null) {

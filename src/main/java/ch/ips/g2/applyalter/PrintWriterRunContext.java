@@ -1,5 +1,6 @@
 package ch.ips.g2.applyalter;
 
+import javax.annotation.Nullable;
 import java.io.IOException;
 import java.io.PrintWriter;
 import java.text.DateFormat;
@@ -15,6 +16,8 @@ import java.util.Date;
 public class PrintWriterRunContext implements RunContext {
     protected RunMode runMode = RunMode.SHARP;
     private boolean incremental;
+    @Nullable
+    private ReportLevel quietLevel;
     protected PrintWriter stdout, stderr;
 
     /**
@@ -37,6 +40,15 @@ public class PrintWriterRunContext implements RunContext {
 
     public void setIncremental(boolean incremental) {
         this.incremental = incremental;
+    }
+
+    @Nullable
+    public ReportLevel getQuietLevel() {
+        return quietLevel;
+    }
+
+    public void setQuietLevel(@Nullable ReportLevel quietLevel) {
+        this.quietLevel = quietLevel;
     }
 
     /**
@@ -66,10 +78,12 @@ public class PrintWriterRunContext implements RunContext {
         );
     }
 
-    public static PrintWriterRunContext createInstance(boolean isIncrimental, RunMode rnmd) {
+    public static PrintWriterRunContext createInstance(boolean isIncrimental, RunMode rnmd,
+                                                       @Nullable ReportLevel quietLevel) {
         PrintWriterRunContext rctx = createStdInstance();
         rctx.setRunMode(rnmd);
         rctx.setIncremental(isIncrimental);
+        rctx.setQuietLevel(quietLevel);
         return rctx;
     }
 
@@ -82,20 +96,27 @@ public class PrintWriterRunContext implements RunContext {
         }
     }
 
-    private void writeReport(String format, PrintWriter wr, Object... args) {
+    private boolean isQuiet(ReportLevel level) {
+        return getQuietLevel() != null && getQuietLevel().compareTo(level) <= 0;
+    }
+
+    private void writeReport(ReportLevel level, String format, PrintWriter wr, Object... args) {
+        if (isQuiet(level)) {
+            return;
+        }
         wr.print(formatTime(new Date()));
         wr.printf(format, args);
         wr.println();
     }
 
     public void report(ReportLevel level, String format, Object... args) {
-        writeReport(format, stdout, args);
+        writeReport(level, format, stdout, args);
     }
 
     public void report(ReportLevel level, Exception e, String format, Object... args) {
-        writeReport(format, stdout, args);
-        writeReport(format, stderr, args);
-        if (e != null) {
+        writeReport(level, format, stdout, args);
+        writeReport(level, format, stderr, args);
+        if (e != null && !isQuiet(level)) {
             e.printStackTrace(stderr);
         }
     }
