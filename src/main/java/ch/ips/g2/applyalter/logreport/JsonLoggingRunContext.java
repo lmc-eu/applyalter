@@ -69,14 +69,14 @@ public class JsonLoggingRunContext extends RunContext.WrapperRunContext {
     }
 
     @Override
-    public void subreport(Runnable run) {
+    public void subreport(String subreportName, Runnable run) {
         final LoggingLevel backup = this.current;
         final long start = System.currentTimeMillis();
         try {
             //add new structured record...
             this.current = new LoggingLevel();
             backup.records.add(this.current.structured);
-            super.subreport(run);
+            super.subreport(subreportName, run);
         } finally {
             //log time
             final long time = System.currentTimeMillis() - start;

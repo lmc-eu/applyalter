@@ -56,9 +56,10 @@ public interface RunContext extends Closeable {
     /**
      * Run some code in subreport; this method should execute try/finally block.
      *
-     * @param run code to execute; must be ALWAYS run!
+     * @param subreportName name of the subreport; used to name xml element, should be simple word
+     * @param run           code to execute; must be ALWAYS run!
      */
-    void subreport(Runnable run);
+    void subreport(String subreportName, Runnable run);
 
     /**
      * Simple wrapper around {@link RunContext}: superclass for other context useful for composition.
@@ -91,8 +92,8 @@ public interface RunContext extends Closeable {
             wrapped.reportProperty(level, key, value);
         }
 
-        public void subreport(Runnable run) {
-            wrapped.subreport(run);
+        public void subreport(String subreportName, Runnable run) {
+            wrapped.subreport(subreportName, run);
         }
 
         public void close() throws IOException {

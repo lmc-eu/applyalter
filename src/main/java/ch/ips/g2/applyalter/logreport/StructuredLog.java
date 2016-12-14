@@ -45,13 +45,18 @@ public class StructuredLog {
     }
 
     /**
-     * Create run context with json output.
+     * Create run context with xml or json output.
      *
      * @param fos  output stream
      * @param rctx run context to wrap - this is still used for standard output
+     * @param json should it be json? default is XML
      * @return new run context, that also writes to structured log.
      */
-    public static RunContext createJson(OutputStream fos, RunContext rctx) {
-        return new JsonLoggingRunContext(rctx, fos);
+    public static RunContext create(OutputStream fos, RunContext rctx, boolean json) {
+        if (json) {
+            return new JsonLoggingRunContext(rctx, fos);
+        } else {
+            return new XmlLoggingRunContext(rctx, fos);
+        }
     }
 }

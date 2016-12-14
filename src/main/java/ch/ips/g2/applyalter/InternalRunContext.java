@@ -31,7 +31,7 @@ class InternalRunContext implements RunContext {
     public void reportProperty(ReportLevel level, String key, Object value) {
     }
 
-    public void subreport(Runnable run) {
+    public void subreport(String subreportName, Runnable run) {
         //do nothing except execution
         run.run();
     }

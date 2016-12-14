@@ -105,7 +105,7 @@ public class PrintWriterRunContext implements RunContext {
         report(level, "%s: %s", key, value);
     }
 
-    public void subreport(Runnable run) {
+    public void subreport(String subreportName, Runnable run) {
         run.run();
     }
 

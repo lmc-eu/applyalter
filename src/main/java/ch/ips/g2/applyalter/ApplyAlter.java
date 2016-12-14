@@ -411,7 +411,7 @@ public class ApplyAlter {
 
         // for all alter scripts
         for (final Alter a : alters) {
-            runContext.subreport(new Runnable() {
+            runContext.subreport("alterscript", new Runnable() {
                 public void run() {
                     applySingleAlter(a, aae);
                 }
@@ -469,7 +469,7 @@ public class ApplyAlter {
                     for (final AlterStatement s : a.getStatements()) {
                         //print to user
                         runContext.report(ReportLevel.STATEMENT, "%s", s);
-                        runContext.subreport(new Runnable() {
+                        runContext.subreport("statement", new Runnable() {
                             public void run() {
                                 s.recordStructuredInfo(runContext);
                                 if (!RunMode.PRINT.equals(getRunMode())) {
@@ -721,7 +721,7 @@ public class ApplyAlter {
         o.addOption(RUN_MODE, true, "runmode, possible values: " + Arrays.toString(RunMode.values()));
         o.addOption(ENVIRONMENT_OPT, true, "environment");
         o.addOption(USER_NAME, true, "user name");
-        o.addOption(STRUCTURED_LOG, true, "write structured log report (json)");
+        o.addOption(STRUCTURED_LOG, true, "write structured log report (xml or json, depending on suffix)");
         o.addOption(NO_VALIDATE_XML, false, "disables XML file with alter script validation");
         o.addOption(NO_LOG_TABLE, false, "disables log table");
         o.addOption(INC_MODE, false, "incremental mode (enabled by default)");
@@ -787,7 +787,7 @@ public class ApplyAlter {
                     System.exit(-1);
                 } else {
                     //create context
-                    rctx = StructuredLog.createJson(fos, rctx);
+                    rctx = StructuredLog.create(fos, rctx, structuredLogFile.endsWith("json"));
                 }
             }
 
