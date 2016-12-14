@@ -816,6 +816,7 @@ public class ApplyAlter {
             printVersion();
             System.exit(-2);
         } catch (Throwable e) {
+            IOUtils.closeQuietly(rctx);
             if (e instanceof ApplyAlterException && (!printstacktrace || ignfail))
                 ((ApplyAlterException) e).printMessages(System.err);
             else
