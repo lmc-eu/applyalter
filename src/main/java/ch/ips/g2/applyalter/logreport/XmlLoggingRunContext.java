@@ -3,6 +3,7 @@ package ch.ips.g2.applyalter.logreport;
 import ch.ips.g2.applyalter.ReportLevel;
 import ch.ips.g2.applyalter.RunContext;
 import org.apache.commons.lang.exception.ExceptionUtils;
+import org.apache.commons.lang.time.DateFormatUtils;
 import org.w3c.dom.Document;
 import org.w3c.dom.Element;
 
@@ -18,6 +19,10 @@ import javax.xml.transform.dom.DOMSource;
 import javax.xml.transform.stream.StreamResult;
 import java.io.IOException;
 import java.io.OutputStream;
+import java.text.DateFormat;
+import java.text.SimpleDateFormat;
+import java.util.Date;
+import java.util.TimeZone;
 
 /**
  * Collect logs into json.
@@ -32,6 +37,14 @@ public class XmlLoggingRunContext extends RunContext.WrapperRunContext {
     private final Element root;
     @Nonnull
     private Element current;
+
+    /**
+     * Format date and time.
+     */
+    protected String formatTime(Date time) {
+        return DateFormatUtils.ISO_DATETIME_TIME_ZONE_FORMAT.format(time);
+    }
+
 
     public XmlLoggingRunContext(RunContext wrapped, OutputStream fos) {
         super(wrapped);
@@ -114,6 +127,7 @@ public class XmlLoggingRunContext extends RunContext.WrapperRunContext {
     private Element createMessageElement(String format, Object[] args) {
         Element msg = document.createElement("message");
         msg.setTextContent(String.format(format, args).trim());
+        msg.setAttribute("at", formatTime(new Date()));
         current.appendChild(msg);
         return msg;
     }
