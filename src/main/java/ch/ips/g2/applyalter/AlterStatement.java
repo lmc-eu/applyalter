@@ -22,14 +22,16 @@ public interface AlterStatement {
      *
      * @return string representation of statement
      */
-    public String toString();
+    String toString();
+
+    void recordStructuredInfo(RunContext rctx);
 
     /**
      * Is the statement allowed to fail?
      *
      * @return true = after exception, alter script just continue; false = exception is fatal
      */
-    public boolean canFail();
+    boolean canFail();
 
     /**
      * Execute the statement. This method does only the real execution; database connection must be already
@@ -43,7 +45,7 @@ public interface AlterStatement {
      * @throws SQLException        sql error, provides SQLSTATE and SQLCODE
      * @throws ApplyAlterException preprocessed exception
      */
-    public void execute(DbInstance dbConn, RunContext ctx, Map<String, byte[]> datafiles)
+    void execute(DbInstance dbConn, RunContext ctx, Map<String, byte[]> datafiles)
             throws SQLException, ApplyAlterException;
 
 

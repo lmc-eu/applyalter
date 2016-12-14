@@ -1,5 +1,6 @@
 package ch.ips.g2.applyalter;
 
+import java.io.IOException;
 import java.io.PrintWriter;
 import java.text.DateFormat;
 import java.text.SimpleDateFormat;
@@ -49,6 +50,12 @@ public class PrintWriterRunContext implements RunContext {
         this.stderr = stderr;
     }
 
+    public void close() throws IOException {
+        //flush, but don't close!
+        stdout.flush();
+        stderr.flush();
+    }
+
     /**
      * Create instance for standard output and standard error.
      */
@@ -57,6 +64,13 @@ public class PrintWriterRunContext implements RunContext {
                 new PrintWriter(System.out, true),
                 new PrintWriter(System.err, true)
         );
+    }
+
+    public static PrintWriterRunContext createInstance(boolean isIncrimental, RunMode rnmd) {
+        PrintWriterRunContext rctx = createStdInstance();
+        rctx.setRunMode(rnmd);
+        rctx.setIncremental(isIncrimental);
+        return rctx;
     }
 
     /**
@@ -84,6 +98,14 @@ public class PrintWriterRunContext implements RunContext {
         if (e != null) {
             e.printStackTrace(stderr);
         }
+    }
+
+    public void reportStructuredProperty(String key, Object value) {
+        //do nothing...
+    }
+
+    public void subreport(Runnable run) {
+        run.run();
     }
 
 }

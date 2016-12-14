@@ -101,6 +101,11 @@ public abstract class AbstractStatement implements AlterStatement {
         return this.getClass().getSimpleName() + ": " + statement;
     }
 
+    public void recordStructuredInfo(RunContext rctx) {
+        rctx.reportStructuredProperty("type", this.getClass().getSimpleName());
+        rctx.reportStructuredProperty("statement", statement);
+    }
+
     //-----------------------------------------------------------------------------------------------------------------
     //-------------------------------------------------------------------------------------------------------------------
 
@@ -123,7 +128,7 @@ public abstract class AbstractStatement implements AlterStatement {
         final List<Object> params;
         if (m.find()) {
             params = new ArrayList<Object>();
-            StringBuffer sb = new StringBuffer();
+            StringBuilder sb = new StringBuilder();
             int lastAppend = 0;
             do {
                 Object dataObject = getParamObj(datafiles, m.group(1), m.group(2));

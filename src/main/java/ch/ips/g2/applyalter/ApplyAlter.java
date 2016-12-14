@@ -1,5 +1,7 @@
 package ch.ips.g2.applyalter;
 
+import ch.ips.g2.applyalter.logreport.ReportedResult;
+import ch.ips.g2.applyalter.logreport.StructuredLog;
 import com.google.common.collect.ArrayListMultimap;
 import com.google.common.collect.Multimap;
 import com.thoughtworks.xstream.XStream;
@@ -16,6 +18,7 @@ import javax.xml.validation.Validator;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
+import java.io.OutputStream;
 import java.net.URL;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
@@ -83,6 +86,10 @@ public class ApplyAlter {
      * Environment.
      */
     public static final String ENVIRONMENT_OPT = "e";
+    /**
+     * Structured report.
+     */
+    public static final String STRUCTURED_LOG = "l";
     /**
      * XML validation on/off
      */
@@ -395,7 +402,7 @@ public class ApplyAlter {
      */
     public void applyWithoutClosing(Alter... alters)
             throws ApplyAlterException {
-        ApplyAlterExceptions aae = new ApplyAlterExceptions(db.isIgnorefailures());
+        final ApplyAlterExceptions aae = new ApplyAlterExceptions(db.isIgnorefailures());
         //initialize databases
         runContext.report(ALTER, "Executing %d alterscripts on %d database instances",
                 alters.length, db.getEntries().size());
@@ -403,17 +410,21 @@ public class ApplyAlter {
         checkDbIds(alters);
 
         // for all alter scripts
-        for (Alter a : alters) {
-            applySingleAlter(a, aae);
+        for (final Alter a : alters) {
+            runContext.subreport(new Runnable() {
+                public void run() {
+                    applySingleAlter(a, aae);
+                }
+            });
         }
 
         if (!aae.isEmpty()) throw aae;
     }
 
-    private void applySingleAlter(Alter a, ApplyAlterExceptions aae) {
+    private void applySingleAlter(final Alter a, ApplyAlterExceptions aae) {
         runContext.report(ALTER, "alterscript: %s", a.getId());
         // for all (or selected) databases
-        for (DbInstance d : db.getEntries()) {
+        for (final DbInstance d : db.getEntries()) {
             //check engine
             if (a.engine != null && !a.engine.equalsIgnoreCase(d.getEngine())) {
                 //skip
@@ -452,13 +463,17 @@ public class ApplyAlter {
                     }
                     d.markConnectionUsed(runContext);
                     // for all alter statements
-                    for (AlterStatement s : a.getStatements()) {
+                    for (final AlterStatement s : a.getStatements()) {
                         //print to user
                         runContext.report(ReportLevel.STATEMENT, "%s", s);
-                        if (RunMode.PRINT.equals(getRunMode()))
-                            continue;
-
-                        executeStatement(d, a, s);
+                        runContext.subreport(new Runnable() {
+                            public void run() {
+                                s.recordStructuredInfo(runContext);
+                                if (!RunMode.PRINT.equals(getRunMode())) {
+                                    executeStatement(d, a, s);
+                                }
+                            }
+                        });
                     }
                     long time = System.currentTimeMillis() - start;
                     savelog(d, dbid, a.getId(), time, a.getHash());
@@ -494,12 +509,14 @@ public class ApplyAlter {
                 throw new ApplyAlterException(e.getMessage(), e);
             }
         }
-
+        ReportedResult result = null;
         try {
             s.execute(db, runContext, a._datafiles);
+            result = ReportedResult.FINISHED;
         } catch (ApplyAlterException e) {
             if (s.canFail()) {
                 runContext.report(ReportLevel.ERROR, "statement failed, ignoring: %s", e.getMessage());
+                result = ReportedResult.FAILED_IGNORED;
             } else
                 throw e;
         } catch (SQLException e) {
@@ -514,6 +531,8 @@ public class ApplyAlter {
             } else
                 throw new ApplyAlterException(e.getMessage(), e);
 
+            result = ReportedResult.FAILED_IGNORED;
+
             //ok, error ignored; rollback to savepoint
             if (savepoint != null) {
                 try {
@@ -524,6 +543,12 @@ public class ApplyAlter {
                     throw new ApplyAlterException(e.getMessage(), e);
                 }
             }
+        } finally {
+            if (result == null) {
+                //nothing set: that means exception is thrown!
+                result = ReportedResult.FAILED;
+            }
+            runContext.reportStructuredProperty("result", result);
         }
     }
 
@@ -691,8 +716,9 @@ public class ApplyAlter {
         o.addOption(IGNORE_FAILURES, false, "ignore failures");
         o.addOption(PRINTSTACKTRACE, false, "print stacktrace");
         o.addOption(RUN_MODE, true, "runmode, possible values: " + Arrays.toString(RunMode.values()));
-        o.addOption(USER_NAME, true, "user name");
         o.addOption(ENVIRONMENT_OPT, true, "environment");
+        o.addOption(USER_NAME, true, "user name");
+        o.addOption(STRUCTURED_LOG, true, "write structured log report (json)");
         o.addOption(NO_VALIDATE_XML, false, "disables XML file with alter script validation");
         o.addOption(NO_LOG_TABLE, false, "disables log table");
         o.addOption(INC_MODE, false, "incremental mode (enabled by default)");
@@ -707,6 +733,7 @@ public class ApplyAlter {
         final boolean isIncrimental;
         RunMode rnmd = RunMode.SHARP;
 
+        RunContext rctx = null;
         try {
             CommandLineParser parser = new BasicParser();
             CommandLine cmd = parser.parse(o, args);
@@ -747,9 +774,20 @@ public class ApplyAlter {
             String[] param = new String[a.length - 1];
             System.arraycopy(a, 1, param, 0, a.length - 1);
 
-            PrintWriterRunContext rctx = PrintWriterRunContext.createStdInstance();
-            rctx.setRunMode(rnmd);
-            rctx.setIncremental(isIncrimental);
+            rctx = PrintWriterRunContext.createInstance(isIncrimental, rnmd);
+
+            String structuredLogFile = cmd.getOptionValue(STRUCTURED_LOG);
+            if (structuredLogFile != null) {
+                final OutputStream fos = StructuredLog.openLogFile(rctx, structuredLogFile);
+                if (fos == null) {
+                    //exit
+                    System.exit(-1);
+                } else {
+                    //create context
+                    rctx = StructuredLog.createJson(fos, rctx);
+                }
+            }
+
 
             // go
             rctx.report(MAIN, "ApplyAlter started");
@@ -780,6 +818,8 @@ public class ApplyAlter {
             else
                 e.printStackTrace(System.err);
             System.exit(-1);
+        } finally {
+            IOUtils.closeQuietly(rctx);
         }
     }
 
