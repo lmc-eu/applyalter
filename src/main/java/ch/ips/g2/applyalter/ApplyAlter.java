@@ -13,6 +13,7 @@ import org.apache.commons.cli.UnrecognizedOptionException;
 import org.apache.commons.io.IOUtils;
 
 import javax.xml.validation.Validator;
+import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.net.URL;
@@ -145,14 +146,14 @@ public class ApplyAlter {
     /**
      * Create instance of ApplyAlter.
      *
-     * @param dbconfigfile   XML serialized {@link DbConfig} (database configuration)
+     * @param config         file that contains XML serialized {@link DbConfig} (database configuration)
      * @param runContext     execution context, providing methods to output the results and report the processing steps.
      * @param ignorefailures ignore all failures?
      * @param username       username used for logging
      * @param validateXml    should ve validate xml (by xsd)
      */
     @SuppressWarnings("unchecked")
-    public ApplyAlter(String dbconfigfile, RunContext runContext, boolean ignorefailures, String username,
+    public ApplyAlter(String config, RunContext runContext, boolean ignorefailures, String username,
                       boolean validateXml, boolean useLogTable, String environment) {
         this.runContext = runContext;
         this.username = username;
@@ -161,11 +162,30 @@ public class ApplyAlter {
 
         xstream.processAnnotations(getXmlClasses());
 
+        DbConfigFile dcf = parseConfiguration(config);
+        db = new DbConfig(dcf, ignorefailures, runContext);
+
+        if (validateXml) {
+            this.validator = XsdValidatorUtil.readXsd(runContext);
+        }
+
+        determineEnvironment(runContext);
+    }
+
+    private DbConfigFile parseConfiguration(String config) {
+        File dbconfigfile = new File(config);
+        if (dbconfigfile.exists()) {
+            return loadConfigFile(dbconfigfile);
+        }
+        //no such file, not a valid syntax...
+        throw new ApplyAlterException("File not found " + config);
+    }
+
+    private DbConfigFile loadConfigFile(File dbconfigfile) {
         FileInputStream fis = null;
         try {
             fis = new FileInputStream(dbconfigfile);
-            DbConfigFile dcf = (DbConfigFile) xstream.fromXML(fis);
-            db = new DbConfig(dcf, ignorefailures, runContext);
+            return (DbConfigFile) xstream.fromXML(fis);
         } catch (FileNotFoundException e) {
             throw new ApplyAlterException("File not found " + dbconfigfile, e);
         } catch (XStreamException e) {
@@ -173,12 +193,6 @@ public class ApplyAlter {
         } finally {
             IOUtils.closeQuietly(fis);
         }
-
-        if (validateXml) {
-            this.validator = XsdValidatorUtil.readXsd(runContext);
-        }
-
-        determineEnvironment(runContext);
     }
 
     /**
