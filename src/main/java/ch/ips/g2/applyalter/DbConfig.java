@@ -80,7 +80,7 @@ public class DbConfig {
      * @see DbInstance#isUsed()
      */
     public void commitUsed(RunContext ctx) throws ApplyAlterException {
-        commitRollbackUsed(ctx, true, "Commiting %s");
+        commitRollbackUsed(ctx, true, "COMMIT");
     }
 
     /**
@@ -90,15 +90,15 @@ public class DbConfig {
      * @see DbInstance#isUsed()
      */
     public void rollbackUsed(RunContext ctx) throws ApplyAlterException {
-        commitRollbackUsed(ctx, false, "Rolling back %s");
+        commitRollbackUsed(ctx, false, "ROLLBACK");
     }
 
-    private void commitRollbackUsed(RunContext ctx, boolean commit, String msgFormat) {
+    private void commitRollbackUsed(RunContext ctx, boolean commit, String transactionEnd) {
         ApplyAlterExceptions aae = new ApplyAlterExceptions(ignorefailures);
         for (DbInstance i : instances) {
             if (i.isUsed())
                 try {
-                    ctx.report(ReportLevel.ALTER, msgFormat, i.getId());
+                    ctx.reportProperty(ReportLevel.ALTER, "transaction", transactionEnd);
                     Connection connection = i.getConnection(ctx);
 
                     if (commit)

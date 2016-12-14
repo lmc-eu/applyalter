@@ -102,8 +102,8 @@ public abstract class AbstractStatement implements AlterStatement {
     }
 
     public void recordStructuredInfo(RunContext rctx) {
-        rctx.reportStructuredProperty("type", this.getClass().getSimpleName());
-        rctx.reportStructuredProperty("statement", statement);
+        rctx.reportProperty(ReportLevel.STATEMENT, "type", this.getClass().getSimpleName());
+        rctx.reportProperty(ReportLevel.STATEMENT, "statement", statement);
     }
 
     //-----------------------------------------------------------------------------------------------------------------

@@ -45,10 +45,13 @@ public interface RunContext extends Closeable {
     void report(ReportLevel level, Exception e, String format, Object... args);
 
     /**
-     * Report structured property: add name=value pair. Ignored for standard log.
-     *  @param key  key
-     * @param value value, must be properly serializable; try to stick with primitive types and String*/
-    void reportStructuredProperty(String key, Object value);
+     * Report structured property: add name=value pair. It should also write to standard log, to avoid duplicit info.
+     *
+     * @param level report level; used mainly if implementation also calls {@link #report(ReportLevel, String, Object...)}
+     * @param key   key
+     * @param value value, must be properly serializable; try to stick with primitive types and String
+     */
+    void reportProperty(ReportLevel level, String key, Object value);
 
     /**
      * Run some code in subreport; this method should execute try/finally block.
@@ -84,8 +87,8 @@ public interface RunContext extends Closeable {
             wrapped.report(level, e, format, args);
         }
 
-        public void reportStructuredProperty(String key, Object value) {
-            wrapped.reportStructuredProperty(key, value);
+        public void reportProperty(ReportLevel level, String key, Object value) {
+            wrapped.reportProperty(level, key, value);
         }
 
         public void subreport(Runnable run) {

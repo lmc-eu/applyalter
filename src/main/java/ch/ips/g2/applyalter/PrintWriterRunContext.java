@@ -82,26 +82,27 @@ public class PrintWriterRunContext implements RunContext {
         }
     }
 
-    private void writeReport(ReportLevel level, String format, PrintWriter wr, Object... args) {
+    private void writeReport(String format, PrintWriter wr, Object... args) {
         wr.print(formatTime(new Date()));
         wr.printf(format, args);
         wr.println();
     }
 
     public void report(ReportLevel level, String format, Object... args) {
-        writeReport(level, format, stdout, args);
+        writeReport(format, stdout, args);
     }
 
     public void report(ReportLevel level, Exception e, String format, Object... args) {
-        writeReport(level, format, stdout, args);
-        writeReport(level, format, stderr, args);
+        writeReport(format, stdout, args);
+        writeReport(format, stderr, args);
         if (e != null) {
             e.printStackTrace(stderr);
         }
     }
 
-    public void reportStructuredProperty(String key, Object value) {
+    public void reportProperty(ReportLevel level, String key, Object value) {
         //do nothing...
+        report(level, "%s: %s", key, value);
     }
 
     public void subreport(Runnable run) {

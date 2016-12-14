@@ -87,9 +87,10 @@ public class JsonLoggingRunContext extends RunContext.WrapperRunContext {
     }
 
     @Override
-    public void reportStructuredProperty(String key, Object value) {
+    public void reportProperty(ReportLevel level, String key, Object value) {
         this.current.structured.add(key, gson.toJsonTree(value));
-        super.reportStructuredProperty(key, value);
+        //also log to standard output
+        super.reportProperty(level, key, value);
     }
 
     @Override

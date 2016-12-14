@@ -422,7 +422,10 @@ public class ApplyAlter {
     }
 
     private void applySingleAlter(final Alter a, ApplyAlterExceptions aae) {
-        runContext.report(ALTER, "alterscript: %s", a.getId());
+        //logged as property//  runContext.report(ALTER, "alterscript: %s", a.getId());
+        runContext.reportProperty(ALTER, "alterscript", a.getId());
+        runContext.reportProperty(ALTER, "hash", a.getHash());
+
         // for all (or selected) databases
         for (final DbInstance d : db.getEntries()) {
             //check engine
@@ -548,7 +551,7 @@ public class ApplyAlter {
                 //nothing set: that means exception is thrown!
                 result = ReportedResult.FAILED;
             }
-            runContext.reportStructuredProperty("result", result);
+            runContext.reportProperty(STATEMENT, "result", result);
         }
     }
 

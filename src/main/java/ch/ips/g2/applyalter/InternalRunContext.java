@@ -28,7 +28,7 @@ class InternalRunContext implements RunContext {
         //skip
     }
 
-    public void reportStructuredProperty(String key, Object value) {
+    public void reportProperty(ReportLevel level, String key, Object value) {
     }
 
     public void subreport(Runnable run) {

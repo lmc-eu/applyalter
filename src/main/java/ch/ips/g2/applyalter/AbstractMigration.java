@@ -68,7 +68,7 @@ public abstract class AbstractMigration extends AbstractStatement {
     @Override
     public void recordStructuredInfo(RunContext rctx) {
         super.recordStructuredInfo(rctx);
-        rctx.reportStructuredProperty("details", toString());
+        rctx.reportProperty(ReportLevel.STATEMENT, "details", toString());
     }
 
     //-----------------------------------------------------------------------------------------------------------------
