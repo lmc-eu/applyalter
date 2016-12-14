@@ -72,6 +72,10 @@ public class ApplyAlter {
      */
     public static final String IGNORE_FAILURES = "i";
     /**
+     * Ignore instances not present in configuration.
+     */
+    public static final String IGNORE_UNKNOWN_INSTANCES = "I";
+    /**
      * User name parameter name
      */
     public static final String USER_NAME = "u";
@@ -120,6 +124,7 @@ public class ApplyAlter {
     protected Multimap<String, String> unapplied = ArrayListMultimap.create();
     private boolean logTableUsed;
     private String environment;
+    private boolean unknownInstancesIgnored = false;
 
 
     protected RunMode getRunMode() {
@@ -128,6 +133,14 @@ public class ApplyAlter {
 
     public boolean isLogTableUsed() {
         return logTableUsed;
+    }
+
+    public void setUnknownInstancesIgnored(boolean unknownInstancesIgnored) {
+        this.unknownInstancesIgnored = unknownInstancesIgnored;
+    }
+
+    public boolean isUnknownInstancesIgnored() {
+        return unknownInstancesIgnored;
     }
 
     public void setLogTableUsed(boolean logTableUsed) {
@@ -342,10 +355,12 @@ public class ApplyAlter {
             if (a.getInstance() == null) {
                 continue;
             }
-            for (String i : a.getInstance()) {
-                if (!types.contains(i)) {
-                    throw new ApplyAlterException("Unknown database type " + i + " in alter " + a.getId() + ". Possible values: "
-                            + types);
+            if (!isUnknownInstancesIgnored()) {
+                for (String i : a.getInstance()) {
+                    if (!types.contains(i)) {
+                        throw new ApplyAlterException("Unknown database type " + i + " in alter " + a.getId() + ". Possible values: "
+                                + types);
+                    }
                 }
             }
             if (a.environment != null) {
@@ -682,6 +697,7 @@ public class ApplyAlter {
         o.addOption(NO_LOG_TABLE, false, "disables log table");
         o.addOption(INC_MODE, false, "incremental mode (enabled by default)");
         o.addOption(NONINC_MODE, false, "disable incremental mode (enable repeated mode)");
+        o.addOption(IGNORE_UNKNOWN_INSTANCES, false, "ignore unknown instances in alterscripts");
         o.addOption("V", "version", false, "version");
 
         boolean ignfail = false;
@@ -745,6 +761,8 @@ public class ApplyAlter {
             );
 
             ApplyAlter applyAlter = new ApplyAlter(a[0], rctx, ignfail, username, validateXml, useLogTable, env);
+            applyAlter.setUnknownInstancesIgnored(cmd.hasOption(IGNORE_UNKNOWN_INSTANCES));
+
             applyAlter.applyInternal();
             applyAlter.apply(validateXml, param);
             if (RunMode.LOOK.equals(rnmd)) {
