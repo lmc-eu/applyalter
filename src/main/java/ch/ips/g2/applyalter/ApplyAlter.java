@@ -30,6 +30,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.EnumSet;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
@@ -423,15 +424,17 @@ public class ApplyAlter {
 
     private void applySingleAlter(final Alter a, ApplyAlterExceptions aae) {
         //logged as property//  runContext.report(ALTER, "alterscript: %s", a.getId());
-        runContext.reportProperty(ALTER, "alterscript", a.getId());
+        runContext.reportProperty(ALTER, "id", a.getId());
         runContext.reportProperty(ALTER, "hash", a.getHash());
 
         // for all (or selected) databases
+        Set<ReportedResult> results = EnumSet.noneOf(ReportedResult.class);
         for (final DbInstance d : db.getEntries()) {
             //check engine
             if (a.engine != null && !a.engine.equalsIgnoreCase(d.getEngine())) {
                 //skip
                 runContext.report(ALTER, "alterscript is only for %s, database is %s, skipping", a.engine, d.getEngine());
+                results.add(ReportedResult.SKIPPED);
                 continue;
             }
 
@@ -439,6 +442,7 @@ public class ApplyAlter {
                 //skip
                 runContext.report(ALTER, "alterscript is for environment %s, database is %s, skipping",
                         a.environment, getEnvironment());
+                results.add(ReportedResult.SKIPPED);
                 continue;
             }
 
@@ -481,8 +485,13 @@ public class ApplyAlter {
                     long time = System.currentTimeMillis() - start;
                     savelog(d, dbid, a.getId(), time, a.getHash());
 
+                    results.add(ReportedResult.FINISHED);
                 } catch (ApplyAlterException e) {
+                    //hack: report FAILED now, it can be overwritten later if the exception is ignored!
+                    runContext.reportProperty(ALTER, "result", ReportedResult.FAILED);
+                    //now either re-throw exception or report it
                     aae.addOrThrow(e);
+                    results.add(ReportedResult.FAILED_IGNORED);
                 }
             }
         }
@@ -491,6 +500,10 @@ public class ApplyAlter {
             db.commitUsed(runContext);
         } else {
             db.rollbackUsed(runContext);
+        }
+        //structured report: pick one status - in most cases, there is only one result anyway
+        if (results.size() == 1) {
+            runContext.reportProperty(ALTER, "result", results.iterator().next());
         }
     }
 
@@ -523,6 +536,9 @@ public class ApplyAlter {
             } else
                 throw e;
         } catch (SQLException e) {
+            runContext.report(ReportLevel.ERROR, "database error: %s", e.getMessage());
+            runContext.reportProperty(ReportLevel.STATEMENT, "sqlcode", e.getErrorCode());
+            runContext.reportProperty(ReportLevel.STATEMENT, "sqlstate", e.getSQLState());
             if (s.canFail()) {
                 runContext.report(ReportLevel.ERROR, "statement failed, ignoring: %s", e.getMessage());
             } else if (s.getIgnoredSqlStates() != null && s.getIgnoredSqlStates().contains(e.getSQLState())) {
