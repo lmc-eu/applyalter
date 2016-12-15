@@ -759,21 +759,24 @@ public class ApplyAlter {
         boolean ignfail = false;
         boolean printstacktrace = false;
         boolean validateXml = true;
-        boolean useLogTable;
+        String username;
         final boolean isIncrimental;
         RunMode rnmd = RunMode.SHARP;
 
+        final String configFile;
+        final String[] param;
+        final CommandLine cmd;
         RunContext rctx = null;
         try {
             CommandLineParser parser = new BasicParser();
-            CommandLine cmd = parser.parse(o, args);
+            cmd = parser.parse(o, args);
 
             if (cmd.hasOption("V")) {
                 printVersion();
                 System.exit(0);
             }
 
-            String username = cmd.getOptionValue(USER_NAME);
+            username = cmd.getOptionValue(USER_NAME);
             if (username == null || "".equals(username.trim())) {
                 username = System.getProperty("user.name");
             }
@@ -785,8 +788,6 @@ public class ApplyAlter {
             ignfail = cmd.hasOption(IGNORE_FAILURES);
             printstacktrace = cmd.hasOption(PRINTSTACKTRACE);
             validateXml = !cmd.hasOption(NO_VALIDATE_XML);
-            useLogTable = !cmd.hasOption(NO_LOG_TABLE);
-            String env = cmd.getOptionValue(ENVIRONMENT_OPT);
 
             //note: incremental mode is enabled by default, disabled by special option
             isIncrimental = !cmd.hasOption(NONINC_MODE);
@@ -810,9 +811,10 @@ public class ApplyAlter {
             if (a.length < 1) {
                 throw new UnrecognizedOptionException("Not enough parameters (dbconfig.xml alterscripts...)");
             }
+            configFile = a[0];
 
             // prepare arguments
-            String[] param = new String[a.length - 1];
+            param = new String[a.length - 1];
             System.arraycopy(a, 1, param, 0, a.length - 1);
 
             rctx = PrintWriterRunContext.createInstance(isIncrimental, rnmd, quietLevel);
@@ -839,7 +841,28 @@ public class ApplyAlter {
                     isIncrimental ? "enabled (synchronize)" : "disabled (repeated execution)"
             );
 
-            ApplyAlter applyAlter = new ApplyAlter(a[0], rctx, ignfail, username, validateXml, useLogTable, env);
+        } catch (UnrecognizedOptionException e) {
+            System.out.println(e.getMessage());
+            final HelpFormatter helpFormatter = new HelpFormatter();
+            helpFormatter.printHelp("applyalter [options] <dbconfig.xml> (alter.xml|alter.zip) ...", o, false);
+            printVersion();
+            System.exit(-2);
+            return;
+        } catch (Throwable e) {
+            IOUtils.closeQuietly(rctx);
+            if (e instanceof ApplyAlterException && (!printstacktrace || ignfail))
+                ((ApplyAlterException) e).printMessages(System.err);
+            else
+                e.printStackTrace(System.err);
+            System.exit(-1);
+            return;
+        }
+
+        try{
+            final boolean useLogTable = !cmd.hasOption(NO_LOG_TABLE);
+            final String env = cmd.getOptionValue(ENVIRONMENT_OPT);
+
+            ApplyAlter applyAlter = new ApplyAlter(configFile, rctx, ignfail, username, validateXml, useLogTable, env);
             applyAlter.setUnknownInstancesIgnored(cmd.hasOption(IGNORE_UNKNOWN_INSTANCES));
 
             applyAlter.applyInternal();
@@ -847,13 +870,8 @@ public class ApplyAlter {
             if (RunMode.LOOK.equals(rnmd)) {
                 rctx.report(MAIN, "Unapplied alters: \n%s", applyAlter.getUnappliedAlters());
             }
-        } catch (UnrecognizedOptionException e) {
-            System.out.println(e.getMessage());
-            final HelpFormatter helpFormatter = new HelpFormatter();
-            helpFormatter.printHelp("applyalter [options] <dbconfig.xml> (alter.xml|alter.zip) ...", o, false);
-            printVersion();
-            System.exit(-2);
         } catch (Throwable e) {
+            rctx.report(ERROR, "execution failed: %s", e.getMessage());
             IOUtils.closeQuietly(rctx);
             if (e instanceof ApplyAlterException && (!printstacktrace || ignfail))
                 ((ApplyAlterException) e).printMessages(System.err);
