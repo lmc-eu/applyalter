@@ -276,11 +276,11 @@ public class ApplyAlter {
         final RunContext backupCtx = this.runContext;
         AlterLoader alterLoader = new AlterLoader(xstream, validator);
 
-        Alter[] internalAlters = new Alter[INTERNAL_SCRIPTS.length];
-        for (int i = 0; i < INTERNAL_SCRIPTS.length; i++) {
-            final String alterName = INTERNAL_SCRIPTS[i];
-            internalAlters[i] = alterLoader.parseScriptFile(alterName,
-                    new AlterLoader.RelativeToClassAlterSource(getClass(), alterName));
+        List<Alter> internalAlters = new ArrayList<Alter>(INTERNAL_SCRIPTS.length);
+        for (final String alterName : INTERNAL_SCRIPTS) {
+            internalAlters.add(alterLoader.parseScriptFile(alterName,
+                    new AlterLoader.RelativeToClassAlterSource(getClass(), alterName))
+            );
         }
 
         //nothing should be shown to user
@@ -304,7 +304,7 @@ public class ApplyAlter {
         AlterLoader ldr = new AlterLoader(xstream, validator);
         List<Alter> a = ldr.loadAlters(alterFiles);
         // actually apply them
-        apply(a.toArray(new Alter[a.size()]));
+        apply(a);
     }
 
     /**
@@ -362,7 +362,7 @@ public class ApplyAlter {
      * @param alters to check
      * @throws ApplyAlterException if there is an unknown database type
      */
-    protected void checkDbIds(Alter... alters) throws ApplyAlterException {
+    protected void checkDbIds(Collection<Alter> alters) throws ApplyAlterException {
         Set<String> types = db.getDbTypes();
         Set<String> environments = new TreeSet<String>();
         for (Alter a : alters) {
@@ -393,7 +393,7 @@ public class ApplyAlter {
      * @param alters alter scripts to apply
      * @throws ApplyAlterException if one of statements can not be executed
      */
-    public void apply(Alter... alters) throws ApplyAlterException {
+    public void apply(Collection<Alter> alters) throws ApplyAlterException {
         try {
             applyWithoutClosing(alters);
         } finally {
@@ -407,12 +407,12 @@ public class ApplyAlter {
      * @param alters alter scripts to apply
      * @throws ApplyAlterException if one of statements can not be executed
      */
-    public void applyWithoutClosing(Alter... alters)
+    public void applyWithoutClosing(Collection<Alter> alters)
             throws ApplyAlterException {
         final ApplyAlterExceptions aae = new ApplyAlterExceptions(db.isIgnorefailures());
         //initialize databases
         runContext.report(ALTER, "Executing %d alterscripts on %d database instances",
-                alters.length, db.getEntries().size());
+                alters.size(), db.getEntries().size());
 
         checkDbIds(alters);
 
