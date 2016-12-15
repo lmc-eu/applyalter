@@ -15,6 +15,7 @@ import org.apache.commons.cli.Options;
 import org.apache.commons.cli.UnrecognizedOptionException;
 import org.apache.commons.io.IOUtils;
 
+import javax.annotation.Nullable;
 import javax.xml.validation.Validator;
 import java.io.File;
 import java.io.FileInputStream;
@@ -279,14 +280,14 @@ public class ApplyAlter {
         List<Alter> internalAlters = new ArrayList<Alter>(INTERNAL_SCRIPTS.length);
         for (final String alterName : INTERNAL_SCRIPTS) {
             internalAlters.add(alterLoader.parseScriptFile(alterName,
-                    new AlterLoader.RelativeToClassAlterSource(getClass(), alterName))
+                    new AlterLoader.RelativeToClassAlterSource(getClass(), alterName), null)
             );
         }
 
         //nothing should be shown to user
         this.runContext = new InternalRunContext();
         //run, but don't close the connections!
-        applyWithoutClosing(internalAlters);
+        applyWithoutClosing(internalAlters, null);
 
         //restore the context
         this.runContext = backupCtx;
@@ -302,9 +303,9 @@ public class ApplyAlter {
     public void apply(boolean validateXml, String... alterFiles)
             throws ApplyAlterException {
         AlterLoader ldr = new AlterLoader(xstream, validator);
-        List<Alter> a = ldr.loadAlters(alterFiles);
+        Alters a = ldr.loadAlters(alterFiles);
         // actually apply them
-        apply(a);
+        apply(a.getAlters(), a.getSourceHash());
     }
 
     /**
@@ -393,9 +394,9 @@ public class ApplyAlter {
      * @param alters alter scripts to apply
      * @throws ApplyAlterException if one of statements can not be executed
      */
-    public void apply(Collection<Alter> alters) throws ApplyAlterException {
+    public void apply(Collection<Alter> alters, @Nullable String sourceHash) throws ApplyAlterException {
         try {
-            applyWithoutClosing(alters);
+            applyWithoutClosing(alters, sourceHash);
         } finally {
             db.closeConnections();
         }
@@ -405,10 +406,15 @@ public class ApplyAlter {
      * Apply alter scripts to all or selected database instances
      *
      * @param alters alter scripts to apply
+     * @param sourceHash sha1 hash of source bundle; optional
      * @throws ApplyAlterException if one of statements can not be executed
      */
-    public void applyWithoutClosing(Collection<Alter> alters)
+    public void applyWithoutClosing(Collection<Alter> alters, @Nullable String sourceHash)
             throws ApplyAlterException {
+        if (sourceHash != null) {
+            runContext.reportProperty(ALTER, "sourceHash", sourceHash);
+        }
+
         final ApplyAlterExceptions aae = new ApplyAlterExceptions(db.isIgnorefailures());
         //initialize databases
         runContext.report(ALTER, "Executing %d alterscripts on %d database instances",
@@ -423,6 +429,11 @@ public class ApplyAlter {
                     applySingleAlter(a, aae);
                 }
             });
+        }
+
+        if (sourceHash != null) {
+            runContext.report(ALTER, "alterscripts done, source hash: %s", sourceHash);
+            //TODO: write to bundle log table
         }
 
         if (!aae.isEmpty()) throw aae;
