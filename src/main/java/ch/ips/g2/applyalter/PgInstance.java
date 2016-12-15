@@ -120,6 +120,10 @@ public class PgInstance extends DbInstance {
         return "public.applyalter_log";
     }
 
+    @Override
+    public String getPkgLogTable() {
+        return "public.applyalter_pkg";
+    }
 
     /**
      * Load and parse <a href="http://www.postgresql.org/docs/current/static/libpq-pgpass.html">pgpass file</a>, try to find

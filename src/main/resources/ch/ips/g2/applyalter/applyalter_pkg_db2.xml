@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<alter>
+  <engine>DB2</engine>
+  <schema>wasg2</schema>
+  <check type="table" name="applyalter_pkg" />
+  <sql>
+    <statement>
+      create table wasg2.applyalter_pkg (
+        dbid varchar(25) NOT NULL,
+        hash char(40) NOT NULL,
+        username varchar(40),
+        at timestamp default current timestamp
+      )
+    </statement>
+  </sql>
+  <sql>
+    <statement>create index applyalter_pkg_at on applyalter_pkg (dbid, at, hash)</statement>
+  </sql>
+  <sql>
+    <statement>create index applyalter_pkg_hash on applyalter_pkg (hash, dbid, at)</statement>
+  </sql>
+</alter>

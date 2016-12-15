@@ -119,6 +119,7 @@ public class ApplyAlter {
             "applyalter_log_db2.xml", "applyalter_log_pgsql.xml",
             "applyalter_hash_db2.xml", "applyalter_hash_pgsql.xml",
             "applyalter_idindex_db2.xml", "applyalter_idindex_pgsql.xml",
+            "applyalter_pkg_db2.xml", "applyalter_pkg_pgsql.xml",
     };
 
     /**
@@ -396,7 +397,16 @@ public class ApplyAlter {
      */
     public void apply(Collection<Alter> alters, @Nullable String sourceHash) throws ApplyAlterException {
         try {
+            if (sourceHash != null) {
+                runContext.reportProperty(ALTER, "sourceHash", sourceHash);
+            }
+
             applyWithoutClosing(alters, sourceHash);
+
+            if (sourceHash != null) {
+                runContext.report(ALTER, "alterscripts done, source hash: %s", sourceHash);
+                savelog_pkg(sourceHash);
+            }
         } finally {
             db.closeConnections();
         }
@@ -411,10 +421,6 @@ public class ApplyAlter {
      */
     public void applyWithoutClosing(Collection<Alter> alters, @Nullable String sourceHash)
             throws ApplyAlterException {
-        if (sourceHash != null) {
-            runContext.reportProperty(ALTER, "sourceHash", sourceHash);
-        }
-
         final ApplyAlterExceptions aae = new ApplyAlterExceptions(db.isIgnorefailures());
         //initialize databases
         runContext.report(ALTER, "Executing %d alterscripts on %d database instances",
@@ -429,11 +435,6 @@ public class ApplyAlter {
                     applySingleAlter(a, aae);
                 }
             });
-        }
-
-        if (sourceHash != null) {
-            runContext.report(ALTER, "alterscripts done, source hash: %s", sourceHash);
-            //TODO: write to bundle log table
         }
 
         if (!aae.isEmpty()) throw aae;
@@ -691,6 +692,47 @@ public class ApplyAlter {
             s.executeUpdate();
         } catch (SQLException e) {
             runContext.report(ReportLevel.ERROR, "failed to insert applyalter_log record: %s", e.getMessage());
+        } finally {
+            DbUtils.close(s);
+        }
+    }
+
+    /**
+     * Log record to applyalter_pkg. Unlike record to applyalter_log, this one does commit!
+     *
+     * @param sourceHash hash of source bundle
+     */
+    protected void savelog_pkg(String sourceHash) {
+        if (sourceHash == null || runContext.getRunMode() != RunMode.SHARP || !isLogTableUsed()) {
+            //do not write to database
+            return;
+        }
+
+        for (DbInstance d : db.getEntries()) {
+            savelog_pkg(d, sourceHash);
+        }
+    }
+    /**
+     * Log record to applyalter_pkg. Unlike record to applyalter_log, this one does commit!
+     *
+     * @param d          database instance
+     * @param sourceHash hash of source bundle
+     */
+    private void savelog_pkg(DbInstance d, String sourceHash) {
+        String id = d.getId();
+        runContext.report(MAIN, "Package record: %s/%s", id, sourceHash);
+
+        Connection c = d.getConnection(runContext);
+        PreparedStatement s = null;
+        try {
+            s = c.prepareStatement("insert into " + d.getPkgLogTable() + " (dbid,hash,username) values (?,?,?)");
+            s.setString(1, id);
+            s.setString(2, sourceHash);
+            s.setString(3, username);
+            s.executeUpdate();
+            c.commit();
+        } catch (SQLException e) {
+            runContext.report(ReportLevel.ERROR, "failed to insert applyalter_pkg record: %s", e.getMessage());
         } finally {
             DbUtils.close(s);
         }
