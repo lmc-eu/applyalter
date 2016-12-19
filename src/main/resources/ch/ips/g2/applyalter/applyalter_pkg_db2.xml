@@ -14,7 +14,8 @@
     </statement>
   </sql>
   <sql>
-    <statement>create index applyalter_pkg_at on applyalter_pkg (dbid, at, hash)</statement>
+    <!-- this is used for: SELECT * FROM APPLYALTER_PKG WHERE dbid=? ORDER BY at DESC FETCH FIRST 1 ROWS ONLY -->
+    <statement>create index applyalter_pkg_at on applyalter_pkg (dbid, at, hash) ALLOW REVERSE SCANS</statement>
   </sql>
   <sql>
     <statement>create index applyalter_pkg_hash on applyalter_pkg (hash, dbid, at)</statement>
