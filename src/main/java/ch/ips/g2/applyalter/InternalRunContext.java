@@ -1,5 +1,7 @@
 package ch.ips.g2.applyalter;
 
+import java.io.IOException;
+
 /**
  * Internal run context: used to run internal alterscript. Nothing should be printed to user.
  *
@@ -24,5 +26,16 @@ class InternalRunContext implements RunContext {
 
     public void report(ReportLevel level, Exception e, String format, Object... args) {
         //skip
+    }
+
+    public void reportProperty(ReportLevel level, String key, Object value) {
+    }
+
+    public void subreport(String subreportName, Runnable run) {
+        //do nothing except execution
+        run.run();
+    }
+
+    public void close() throws IOException {
     }
 }

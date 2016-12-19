@@ -65,6 +65,12 @@ public abstract class AbstractMigration extends AbstractStatement {
         this.placeholder = placeholder;
     }
 
+    @Override
+    public void recordStructuredInfo(RunContext rctx) {
+        super.recordStructuredInfo(rctx);
+        rctx.reportProperty(ReportLevel.STATEMENT, "details", toString());
+    }
+
     //-----------------------------------------------------------------------------------------------------------------
     //-----------------------------------------------------------------------------------------------------------------
 
@@ -100,7 +106,7 @@ public abstract class AbstractMigration extends AbstractStatement {
             }
             matcher.appendTail(sb);
             return new ProcessedQuery(sb.toString(), counter);
-        } catch (PatternSyntaxException e) {
+        } catch (PatternSyntaxException ignored) {
             throw new ApplyAlterException("invalid placeholder, not a valid regex: %s", placeholder);
         }
     }
