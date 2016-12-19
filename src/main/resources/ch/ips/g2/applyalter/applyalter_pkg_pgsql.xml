@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<alter>
+  <engine>Postgresql</engine>
+  <schema>public</schema>
+  <check type="table" name="applyalter_pkg" />
+  <sql>
+    <statement>
+      create table public.applyalter_pkg (
+        dbid varchar(25),
+        hash char(40),
+        username varchar(40),
+        at timestamp default now()
+      )
+    </statement>
+  </sql>
+  <sql>
+    <statement>create index applyalter_pkg_at on applyalter_pkg (dbid, at, hash)</statement>
+  </sql>
+  <sql>
+    <statement>create index applyalter_pkg_hash on applyalter_pkg (hash, dbid, at)</statement>
+  </sql>
+</alter>

@@ -252,6 +252,10 @@ public abstract class DbInstance {
         return "wasg2.applyalter_log";
     }
 
+    public String getPkgLogTable() {
+        return "wasg2.applyalter_pkg";
+    }
+
     //--------------------------------------------------------------------------------------------------
 
     protected static final String[] MDTYPES_TABLE = {"TABLE", "ALIAS"};

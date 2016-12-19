@@ -5,17 +5,29 @@ import com.thoughtworks.xstream.XStreamException;
 import org.apache.commons.io.IOUtils;
 import org.xml.sax.SAXException;
 
+import javax.annotation.Nonnull;
+import javax.annotation.Nullable;
 import javax.xml.transform.stream.StreamSource;
 import javax.xml.validation.Validator;
-import java.io.*;
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.FileNotFoundException;
+import java.io.IOException;
+import java.io.InputStream;
 import java.net.MalformedURLException;
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.net.URL;
+import java.security.DigestException;
 import java.security.DigestInputStream;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.List;
+import java.util.Map;
+import java.util.TreeMap;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipFile;
 import java.util.zip.ZipInputStream;
@@ -38,8 +50,9 @@ public class AlterLoader {
     /**
      * Load alterscripts from files and ZIP archives.
      */
-    public List<Alter> loadAlters(String... filenames) {
+    public Alters loadAlters(String... filenames) {
         List<Alter> a = new ArrayList<Alter>(filenames.length);
+        MessageDigest sourceDigest = initHashDigest();
         for (String f : filenames) {
 
             final boolean isZip;
@@ -58,14 +71,14 @@ public class AlterLoader {
                 } catch (MalformedURLException e) {
                     throw new ApplyAlterException("invalid URL: " + f, e);
                 }
-                a.addAll(loadUrl(url, isZip));
+                a.addAll(loadUrl(url, isZip, sourceDigest));
             } else {
                 //file
                 final File file = new File(f);
-                a.addAll(loadFile(file, isZip));
+                a.addAll(loadFile(file, isZip, sourceDigest));
             }
         }
-        return a;
+        return new Alters(a, bytes2hex(sourceDigest.digest()));
     }
 
     /**
@@ -73,7 +86,7 @@ public class AlterLoader {
      * This method sets {@link ch.ips.g2.applyalter.Alter#getId()} and {@link ch.ips.g2.applyalter.Alter#getHash()}
      * (note: this is the place where hash algorithm is implemented).
      */
-    public Alter parseScriptFile(String fileId, AlterSource source) {
+    public Alter parseScriptFile(String fileId, AlterSource source, @Nullable MessageDigest extraDigest) {
         Alter alterscript;
         final MessageDigest digest = initHashDigest();
 
@@ -84,7 +97,8 @@ public class AlterLoader {
             }
             inputStream = source.openScript();
             //compute hash on-the-fly
-            inputStream = new DigestInputStream(inputStream, digest);
+            inputStream = wrapDigesting(inputStream, digest);
+            inputStream = wrapDigesting(inputStream, extraDigest);
             alterscript = (Alter) xstream.fromXML(inputStream);
         } catch (XStreamException e) {
             throw new ApplyAlterException("Unable to deserialize Alter from file " + fileId, e);
@@ -106,7 +120,7 @@ public class AlterLoader {
                 inputStream = null;
                 try {
                     inputStream = source.openDataFile(datafile);
-                    inputStream = new DigestInputStream(inputStream, digest);
+                    inputStream = wrapDigesting(inputStream, digest);
                     byte[] data = IOUtils.toByteArray(inputStream);
                     alterscript._datafiles.put(datafile, data);
                 } catch (FileNotFoundException e) {
@@ -127,6 +141,38 @@ public class AlterLoader {
         alterscript.setHash(bytes2hex(hashBytes));
 
         return alterscript;
+    }
+
+    /**
+     * Utility method: wrap stream in {@link DigestInputStream}, but not when the digest is null.
+     *
+     * @param inputStream input stream to wrap
+     * @param digest      digest buffer to compute
+     * @return digesting stream wrapper, or just the original stream
+     */
+    private static InputStream wrapDigesting(@Nonnull InputStream inputStream, @Nullable MessageDigest digest) {
+        if (digest == null) {
+            return inputStream;
+        }
+        return new DigestInputStream(inputStream, digest);
+    }
+
+    /**
+     * Utility method: compute full digest of stream, consuming it.
+     *
+     * @param inputStream input stream to compute digest
+     * @param digest      digest buffer to compute
+     * @return the digest
+     */
+    private static MessageDigest digestAndClose(@Nonnull InputStream inputStream, @Nonnull MessageDigest digest)
+            throws IOException, DigestException {
+        byte[] buf = new byte[1024];
+        int len;
+        while ((len = inputStream.read(buf)) >= 0) {
+            digest.update(buf, 0, len);
+        }
+        inputStream.close();
+        return digest;
     }
 
     /**
@@ -160,30 +206,30 @@ public class AlterLoader {
     /**
      * Create Alter instance from XML serialized from file
      *
-     * @param file XML serialized Alter
+     * @param file         XML serialized Alter
+     * @param sourceDigest
      * @return new Alter instance
-     * @throws ch.ips.g2.applyalter.ApplyAlterException
-     *          if file can not be found
+     * @throws ch.ips.g2.applyalter.ApplyAlterException if file can not be found
      */
-    private Collection<? extends Alter> loadFile(File file, boolean zip) {
+    private Collection<? extends Alter> loadFile(File file, boolean zip, MessageDigest sourceDigest) {
         if (!file.exists())
             throw new ApplyAlterException("file does not exist: " + file);
 
         if (zip) {
-            return loadZip(file);
+            return loadZip(file, sourceDigest);
         } else {
             final AlterSource source = new FileSource(file);
-            return Collections.singletonList(parseScriptFile(file.toString(), source));
+            return Collections.singletonList(parseScriptFile(file.toString(), source, sourceDigest));
         }
 
     }
 
-    private Collection<? extends Alter> loadUrl(URL url, boolean zip) {
+    private Collection<? extends Alter> loadUrl(URL url, boolean zip, MessageDigest sourceDigest) {
         if (zip) {
-            return loadZip(url);
+            return loadZip(url, sourceDigest);
         } else {
             final AlterSource source = new UrlSource(url);
-            return Collections.singletonList(parseScriptFile(url.toString(), source));
+            return Collections.singletonList(parseScriptFile(url.toString(), source, sourceDigest));
         }
     }
 
@@ -192,40 +238,14 @@ public class AlterLoader {
      * Create a list of Alter instances from XML serialized from files stored in .zip.
      * List is sorted using {@link ch.ips.g2.applyalter.ZipEntryNameComparator}.
      *
-     * @param zipfile zip file containing XML files
+     * @param zipfile      zip file containing XML files
+     * @param sourceDigest source digest
      * @return list of new Alter instances
-     * @throws ch.ips.g2.applyalter.ApplyAlterException
-     *          if error occurs during zip file processing
-     *          TODO: replace by {@link #loadZip(java.net.URL)}
+     * @throws ch.ips.g2.applyalter.ApplyAlterException if error occurs during zip file processing
      */
-    protected List<Alter> loadZip(File zipfile) {
+    protected List<Alter> loadZip(File zipfile, MessageDigest sourceDigest) {
         try {
-            final ZipFile z = new ZipFile(zipfile);
-            List<ZipEntry> alterEntries = new ArrayList<ZipEntry>();
-            final Map<String, ZipEntry> allFiles = new HashMap<String, ZipEntry>();
-
-            Enumeration<? extends ZipEntry> zipEntryEnum = z.entries();
-            while (zipEntryEnum.hasMoreElements()) {
-                ZipEntry zipFile = zipEntryEnum.nextElement();
-                if (zipFile.isDirectory()) {
-                    continue;
-                }
-                allFiles.put(zipFile.getName(), zipFile);
-                if (zipFile.getName().endsWith(ApplyAlter.XML_SUFFIX)) {
-                    alterEntries.add(zipFile);
-                }
-            }
-
-            List<Alter> a = new ArrayList<Alter>(alterEntries.size());
-            Collections.sort(alterEntries, new ZipEntryNameComparator());
-            for (final ZipEntry entry : alterEntries) {
-                AlterSource source = new ZipAlterSource(z, entry, allFiles);
-
-                Alter alterscript = parseScriptFile(entry.getName(), source);
-                a.add(alterscript);
-            }
-
-            return a;
+            return loadZip(zipfile.toURI().toURL(), sourceDigest);
         } catch (IOException e) {
             throw new ApplyAlterException("Error reading zip file " + zipfile, e);
         }
@@ -234,16 +254,18 @@ public class AlterLoader {
     /**
      * Create a list of Alter instances from XML serialized from files stored in .zip.
      * List is sorted using {@link ch.ips.g2.applyalter.ZipEntryNameComparator}.
+     * <p />
+     * Implementation note: the input zip is actually read several times.
      *
      * @param zipfile zip file containing XML files
      * @return list of new Alter instances
-     * @throws ch.ips.g2.applyalter.ApplyAlterException
-     *          if error occurs during zip file processing
+     * @throws ch.ips.g2.applyalter.ApplyAlterException if error occurs during zip file processing
      */
-    protected List<Alter> loadZip(URL zipfile) {
+    protected List<Alter> loadZip(URL zipfile, @Nonnull MessageDigest sourceDigest) {
         final List<String> alterNames;
         try {
-            final ZipInputStream zis = new ZipInputStream(zipfile.openStream());
+            InputStream inputStream = zipfile.openStream();
+            final ZipInputStream zis = new ZipInputStream(inputStream);
             alterNames = new ArrayList<String>();
 
             ZipEntry entry;
@@ -255,8 +277,13 @@ public class AlterLoader {
                     alterNames.add(entryName);
                 }
             }
+            zis.close();
+
+            digestAndClose(zipfile.openStream(), sourceDigest);
         } catch (IOException e) {
             throw new ApplyAlterException("Error reading zip file " + zipfile, e);
+        } catch (DigestException e) {
+            throw new ApplyAlterException("Error computing digest of " + zipfile, e);
         }
 
         List<Alter> a = new ArrayList<Alter>(alterNames.size());
@@ -264,7 +291,8 @@ public class AlterLoader {
 
         for (String alterName : alterNames) {
             AlterSource source = new JarUrlSource(zipfile, alterName);
-            Alter alterscript = parseScriptFile(alterName, source);
+            //note: this.sourceDigest already contains whole zip, do NOT update it with alterscript content!
+            Alter alterscript = parseScriptFile(alterName, source, null);
             a.add(alterscript);
         }
 
@@ -438,4 +466,5 @@ public class AlterLoader {
             return baseClass.getResourceAsStream(filename);
         }
     }
+
 }

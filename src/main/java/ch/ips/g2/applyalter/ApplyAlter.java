@@ -15,6 +15,7 @@ import org.apache.commons.cli.Options;
 import org.apache.commons.cli.UnrecognizedOptionException;
 import org.apache.commons.io.IOUtils;
 
+import javax.annotation.Nullable;
 import javax.xml.validation.Validator;
 import java.io.File;
 import java.io.FileInputStream;
@@ -118,6 +119,7 @@ public class ApplyAlter {
             "applyalter_log_db2.xml", "applyalter_log_pgsql.xml",
             "applyalter_hash_db2.xml", "applyalter_hash_pgsql.xml",
             "applyalter_idindex_db2.xml", "applyalter_idindex_pgsql.xml",
+            "applyalter_pkg_db2.xml", "applyalter_pkg_pgsql.xml",
     };
 
     /**
@@ -276,17 +278,17 @@ public class ApplyAlter {
         final RunContext backupCtx = this.runContext;
         AlterLoader alterLoader = new AlterLoader(xstream, validator);
 
-        Alter[] internalAlters = new Alter[INTERNAL_SCRIPTS.length];
-        for (int i = 0; i < INTERNAL_SCRIPTS.length; i++) {
-            final String alterName = INTERNAL_SCRIPTS[i];
-            internalAlters[i] = alterLoader.parseScriptFile(alterName,
-                    new AlterLoader.RelativeToClassAlterSource(getClass(), alterName));
+        List<Alter> internalAlters = new ArrayList<Alter>(INTERNAL_SCRIPTS.length);
+        for (final String alterName : INTERNAL_SCRIPTS) {
+            internalAlters.add(alterLoader.parseScriptFile(alterName,
+                    new AlterLoader.RelativeToClassAlterSource(getClass(), alterName), null)
+            );
         }
 
         //nothing should be shown to user
         this.runContext = new InternalRunContext();
         //run, but don't close the connections!
-        applyWithoutClosing(internalAlters);
+        applyWithoutClosing(internalAlters, null);
 
         //restore the context
         this.runContext = backupCtx;
@@ -302,9 +304,9 @@ public class ApplyAlter {
     public void apply(boolean validateXml, String... alterFiles)
             throws ApplyAlterException {
         AlterLoader ldr = new AlterLoader(xstream, validator);
-        List<Alter> a = ldr.loadAlters(alterFiles);
+        Alters a = ldr.loadAlters(alterFiles);
         // actually apply them
-        apply(a.toArray(new Alter[a.size()]));
+        apply(a.getAlters(), a.getSourceHash());
     }
 
     /**
@@ -362,7 +364,7 @@ public class ApplyAlter {
      * @param alters to check
      * @throws ApplyAlterException if there is an unknown database type
      */
-    protected void checkDbIds(Alter... alters) throws ApplyAlterException {
+    protected void checkDbIds(Collection<Alter> alters) throws ApplyAlterException {
         Set<String> types = db.getDbTypes();
         Set<String> environments = new TreeSet<String>();
         for (Alter a : alters) {
@@ -393,9 +395,18 @@ public class ApplyAlter {
      * @param alters alter scripts to apply
      * @throws ApplyAlterException if one of statements can not be executed
      */
-    public void apply(Alter... alters) throws ApplyAlterException {
+    public void apply(Collection<Alter> alters, @Nullable String sourceHash) throws ApplyAlterException {
         try {
-            applyWithoutClosing(alters);
+            if (sourceHash != null) {
+                runContext.reportProperty(ALTER, "sourceHash", sourceHash);
+            }
+
+            applyWithoutClosing(alters, sourceHash);
+
+            if (sourceHash != null) {
+                runContext.report(ALTER, "alterscripts done, source hash: %s", sourceHash);
+                savelog_pkg(sourceHash);
+            }
         } finally {
             db.closeConnections();
         }
@@ -405,14 +416,15 @@ public class ApplyAlter {
      * Apply alter scripts to all or selected database instances
      *
      * @param alters alter scripts to apply
+     * @param sourceHash sha1 hash of source bundle; optional
      * @throws ApplyAlterException if one of statements can not be executed
      */
-    public void applyWithoutClosing(Alter... alters)
+    public void applyWithoutClosing(Collection<Alter> alters, @Nullable String sourceHash)
             throws ApplyAlterException {
         final ApplyAlterExceptions aae = new ApplyAlterExceptions(db.isIgnorefailures());
         //initialize databases
         runContext.report(ALTER, "Executing %d alterscripts on %d database instances",
-                alters.length, db.getEntries().size());
+                alters.size(), db.getEntries().size());
 
         checkDbIds(alters);
 
@@ -680,6 +692,47 @@ public class ApplyAlter {
             s.executeUpdate();
         } catch (SQLException e) {
             runContext.report(ReportLevel.ERROR, "failed to insert applyalter_log record: %s", e.getMessage());
+        } finally {
+            DbUtils.close(s);
+        }
+    }
+
+    /**
+     * Log record to applyalter_pkg. Unlike record to applyalter_log, this one does commit!
+     *
+     * @param sourceHash hash of source bundle
+     */
+    protected void savelog_pkg(String sourceHash) {
+        if (sourceHash == null || runContext.getRunMode() != RunMode.SHARP || !isLogTableUsed()) {
+            //do not write to database
+            return;
+        }
+
+        for (DbInstance d : db.getEntries()) {
+            savelog_pkg(d, sourceHash);
+        }
+    }
+    /**
+     * Log record to applyalter_pkg. Unlike record to applyalter_log, this one does commit!
+     *
+     * @param d          database instance
+     * @param sourceHash hash of source bundle
+     */
+    private void savelog_pkg(DbInstance d, String sourceHash) {
+        String id = d.getId();
+        runContext.report(MAIN, "Package record: %s/%s", id, sourceHash);
+
+        Connection c = d.getConnection(runContext);
+        PreparedStatement s = null;
+        try {
+            s = c.prepareStatement("insert into " + d.getPkgLogTable() + " (dbid,hash,username) values (?,?,?)");
+            s.setString(1, id);
+            s.setString(2, sourceHash);
+            s.setString(3, username);
+            s.executeUpdate();
+            c.commit();
+        } catch (SQLException e) {
+            runContext.report(ReportLevel.ERROR, "failed to insert applyalter_pkg record: %s", e.getMessage());
         } finally {
             DbUtils.close(s);
         }
