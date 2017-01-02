@@ -107,6 +107,16 @@ public class ApplyAlter {
      */
     public static final String NO_LOG_TABLE = "L";
     /**
+     * Query the APPLYALTER_PKG table: this option takes output file.
+     */
+    public static final String QUERY_PKG = "query-pkg";
+    /**
+     * Query the APPLYALTER_PKG table: limit to specified hash.
+     */
+    public static final String QUERY_PKG_HASH = "query-pkg-hash";
+
+
+    /**
      * Suffix for zip file
      */
     public static final String ZIP_SUFFIX = ".zip";
@@ -777,6 +787,9 @@ public class ApplyAlter {
         o.addOption(IGNORE_UNKNOWN_INSTANCES, false, "ignore unknown instances in alterscripts");
         o.addOption("V", "version", false, "version");
 
+        o.addOption(null, QUERY_PKG, true, "query the APPLYALTER_PKG table and write result to file");
+        o.addOption(null, QUERY_PKG_HASH, true, "limit output of --" + QUERY_PKG + " by specified SHA1 hash");
+
         boolean ignfail = false;
         boolean printstacktrace = false;
         boolean validateXml = true;
@@ -865,6 +878,7 @@ public class ApplyAlter {
         } catch (UnrecognizedOptionException e) {
             System.out.println(e.getMessage());
             final HelpFormatter helpFormatter = new HelpFormatter();
+            helpFormatter.setWidth(114);
             helpFormatter.printHelp("applyalter [options] <dbconfig.xml> (alter.xml|alter.zip) ...", o, false);
             printVersion();
             System.exit(-2);
@@ -891,6 +905,13 @@ public class ApplyAlter {
             if (RunMode.LOOK.equals(rnmd)) {
                 rctx.report(MAIN, "Unapplied alters: \n%s", applyAlter.getUnappliedAlters());
             }
+
+            //queries
+            final String queryPkgFile = cmd.getOptionValue(QUERY_PKG);
+            if (queryPkgFile != null && applyAlter.pkgLogTable != null) {
+                applyAlter.pkgLogTable.queryAndWrite(queryPkgFile, cmd.getOptionValue(QUERY_PKG_HASH));
+            }
+
         } catch (Throwable e) {
             rctx.report(ERROR, "execution failed: %s", e.getMessage());
             IOUtils.closeQuietly(rctx);
