@@ -111,7 +111,7 @@ public class ApplyAlter {
      */
     public static final String QUERY_PKG = "query-pkg";
     /**
-     * Query the APPLYALTER_PKG table: limit to specified hash.
+     * Query the APPLYALTER_PKG table: limit to specified hash (instead of the alterscripts one).
      */
     public static final String QUERY_PKG_HASH = "query-pkg-hash";
 
@@ -318,12 +318,13 @@ public class ApplyAlter {
      * @param alterFiles files with XML serialized alter scripts
      * @throws ApplyAlterException if one of files is not .xml or .zip, or alter application fails
      */
-    public void apply(boolean validateXml, String... alterFiles)
+    public Alters apply(boolean validateXml, String... alterFiles)
             throws ApplyAlterException {
         AlterLoader ldr = new AlterLoader(xstream, validator);
         Alters a = ldr.loadAlters(alterFiles);
         // actually apply them
         apply(a.getAlters(), a.getSourceHash());
+        return a;
     }
 
     /**
@@ -901,7 +902,7 @@ public class ApplyAlter {
             applyAlter.setUnknownInstancesIgnored(cmd.hasOption(IGNORE_UNKNOWN_INSTANCES));
 
             applyAlter.applyInternal();
-            applyAlter.apply(validateXml, param);
+            final Alters alters = applyAlter.apply(validateXml, param);
             if (RunMode.LOOK.equals(rnmd)) {
                 rctx.report(MAIN, "Unapplied alters: \n%s", applyAlter.getUnappliedAlters());
             }
@@ -909,7 +910,12 @@ public class ApplyAlter {
             //queries
             final String queryPkgFile = cmd.getOptionValue(QUERY_PKG);
             if (queryPkgFile != null && applyAlter.pkgLogTable != null) {
-                applyAlter.pkgLogTable.queryAndWrite(queryPkgFile, cmd.getOptionValue(QUERY_PKG_HASH));
+                String queryPkgHash = cmd.getOptionValue(QUERY_PKG_HASH);
+                if (queryPkgHash == null && alters.getAlters().size() > 0) {
+                    //--query-pkg-hash not present, but there are some alterscripts --> use their hash
+                    queryPkgHash = alters.getSourceHash();
+                }
+                applyAlter.pkgLogTable.queryAndWrite(queryPkgFile, queryPkgHash);
             }
 
         } catch (Throwable e) {
