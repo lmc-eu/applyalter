@@ -92,3 +92,20 @@ and provide some advanced features. Commands are then executed.
 
 *Whenever possible, each alterscript is executed in single transaction, with rollback on error. On success, record about
 execution is stored to special table `APPLYALTER_LOG` .* 
+
+Package log table and queries
+-----------------------------
+All alterscripts executed in single invocation (ie all commandline arguments)
+are considered single "*package*" and their complete checksum is recorded to
+special table `applyalter_pkg`. Unlike `applyalter_log` (which records single
+alterscripts), this one is not checked in any way and used only to query information
+about past invocations. Main use case is the "check_mode" of ansible module.
+
+To query this table and list packages (invocations), specify option `--query-pkg`
+with path to output file. After standard execution, all records with the same
+SHA1 checksums and the same database ID are found and written as XML file.
+* Query result also includes this very invocation, as long as it was really executed
+  (ie SHARP mode, which is default).
+* If there are no alterscripts to load (ie the only parameter is configuration file),
+  complete history is dumped for this database.
+* Explicit checksum to query can be specified by option `--query-pkg-hash`

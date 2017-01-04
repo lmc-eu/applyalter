@@ -107,6 +107,16 @@ public class ApplyAlter {
      */
     public static final String NO_LOG_TABLE = "L";
     /**
+     * Query the APPLYALTER_PKG table: this option takes output file.
+     */
+    public static final String QUERY_PKG = "query-pkg";
+    /**
+     * Query the APPLYALTER_PKG table: limit to specified hash (instead of the alterscripts one).
+     */
+    public static final String QUERY_PKG_HASH = "query-pkg-hash";
+
+
+    /**
      * Suffix for zip file
      */
     public static final String ZIP_SUFFIX = ".zip";
@@ -134,6 +144,9 @@ public class ApplyAlter {
      * run mode
      */
     protected RunContext runContext;
+
+    @Nullable
+    private PkgLogTableHandler pkgLogTable;
 
     protected XStream xstream = new XStream();
     protected String username;
@@ -199,6 +212,10 @@ public class ApplyAlter {
         }
 
         determineEnvironment(runContext);
+
+        if (isLogTableUsed()) {
+            pkgLogTable = new PkgLogTableHandler(this.runContext, db, this.username);
+        }
     }
 
     private DbConfigFile parseConfiguration(String config) {
@@ -301,12 +318,13 @@ public class ApplyAlter {
      * @param alterFiles files with XML serialized alter scripts
      * @throws ApplyAlterException if one of files is not .xml or .zip, or alter application fails
      */
-    public void apply(boolean validateXml, String... alterFiles)
+    public Alters apply(boolean validateXml, String... alterFiles)
             throws ApplyAlterException {
         AlterLoader ldr = new AlterLoader(xstream, validator);
         Alters a = ldr.loadAlters(alterFiles);
         // actually apply them
         apply(a.getAlters(), a.getSourceHash());
+        return a;
     }
 
     /**
@@ -405,7 +423,9 @@ public class ApplyAlter {
 
             if (sourceHash != null) {
                 runContext.report(ALTER, "alterscripts done, source hash: %s", sourceHash);
-                savelog_pkg(sourceHash);
+                if (pkgLogTable != null) {
+                    pkgLogTable.savelog_pkg(sourceHash);
+                }
             }
         } finally {
             db.closeConnections();
@@ -698,47 +718,6 @@ public class ApplyAlter {
     }
 
     /**
-     * Log record to applyalter_pkg. Unlike record to applyalter_log, this one does commit!
-     *
-     * @param sourceHash hash of source bundle
-     */
-    protected void savelog_pkg(String sourceHash) {
-        if (sourceHash == null || runContext.getRunMode() != RunMode.SHARP || !isLogTableUsed()) {
-            //do not write to database
-            return;
-        }
-
-        for (DbInstance d : db.getEntries()) {
-            savelog_pkg(d, sourceHash);
-        }
-    }
-    /**
-     * Log record to applyalter_pkg. Unlike record to applyalter_log, this one does commit!
-     *
-     * @param d          database instance
-     * @param sourceHash hash of source bundle
-     */
-    private void savelog_pkg(DbInstance d, String sourceHash) {
-        String id = d.getId();
-        runContext.report(MAIN, "Package record: %s/%s", id, sourceHash);
-
-        Connection c = d.getConnection(runContext);
-        PreparedStatement s = null;
-        try {
-            s = c.prepareStatement("insert into " + d.getPkgLogTable() + " (dbid,hash,username) values (?,?,?)");
-            s.setString(1, id);
-            s.setString(2, sourceHash);
-            s.setString(3, username);
-            s.executeUpdate();
-            c.commit();
-        } catch (SQLException e) {
-            runContext.report(ReportLevel.ERROR, "failed to insert applyalter_pkg record: %s", e.getMessage());
-        } finally {
-            DbUtils.close(s);
-        }
-    }
-
-    /**
      * Get ids of applied alters read from log table
      *
      * @param d database instance connection
@@ -808,6 +787,9 @@ public class ApplyAlter {
         o.addOption(NONINC_MODE, false, "disable incremental mode (enable repeated mode)");
         o.addOption(IGNORE_UNKNOWN_INSTANCES, false, "ignore unknown instances in alterscripts");
         o.addOption("V", "version", false, "version");
+
+        o.addOption(null, QUERY_PKG, true, "query the APPLYALTER_PKG table and write result to file");
+        o.addOption(null, QUERY_PKG_HASH, true, "limit output of --" + QUERY_PKG + " by specified SHA1 hash");
 
         boolean ignfail = false;
         boolean printstacktrace = false;
@@ -897,6 +879,7 @@ public class ApplyAlter {
         } catch (UnrecognizedOptionException e) {
             System.out.println(e.getMessage());
             final HelpFormatter helpFormatter = new HelpFormatter();
+            helpFormatter.setWidth(114);
             helpFormatter.printHelp("applyalter [options] <dbconfig.xml> (alter.xml|alter.zip) ...", o, false);
             printVersion();
             System.exit(-2);
@@ -919,10 +902,22 @@ public class ApplyAlter {
             applyAlter.setUnknownInstancesIgnored(cmd.hasOption(IGNORE_UNKNOWN_INSTANCES));
 
             applyAlter.applyInternal();
-            applyAlter.apply(validateXml, param);
+            final Alters alters = applyAlter.apply(validateXml, param);
             if (RunMode.LOOK.equals(rnmd)) {
                 rctx.report(MAIN, "Unapplied alters: \n%s", applyAlter.getUnappliedAlters());
             }
+
+            //queries
+            final String queryPkgFile = cmd.getOptionValue(QUERY_PKG);
+            if (queryPkgFile != null && applyAlter.pkgLogTable != null) {
+                String queryPkgHash = cmd.getOptionValue(QUERY_PKG_HASH);
+                if (queryPkgHash == null && alters.getAlters().size() > 0) {
+                    //--query-pkg-hash not present, but there are some alterscripts --> use their hash
+                    queryPkgHash = alters.getSourceHash();
+                }
+                applyAlter.pkgLogTable.queryAndWrite(queryPkgFile, queryPkgHash);
+            }
+
         } catch (Throwable e) {
             rctx.report(ERROR, "execution failed: %s", e.getMessage());
             IOUtils.closeQuietly(rctx);
