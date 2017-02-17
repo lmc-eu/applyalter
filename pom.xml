@@ -150,6 +150,17 @@
         </profile>
 
         <profile>
+            <id>embed_mysql_5.1.18</id>
+            <dependencies>
+                <dependency>
+                    <groupId>mysql</groupId>
+                    <artifactId>mysql-connector-java</artifactId>
+                    <version>5.1.18</version>
+                </dependency>
+            </dependencies>
+        </profile>
+
+        <profile>
             <id>package-deb</id>
             <properties>
                 <destdir>/srv/applyalter</destdir>

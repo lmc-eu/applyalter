@@ -278,6 +278,7 @@ public class ApplyAlter {
                 MigrationIdList.class,
                 PgInstance.class,
                 OracleInstance.class,
+                MysqlInstance.class,
                 Db2Instance.class,
                 Db2Native.class
         };
