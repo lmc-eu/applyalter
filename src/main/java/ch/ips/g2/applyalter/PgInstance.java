@@ -57,15 +57,7 @@ public class PgInstance extends DbInstance {
      */
     @Override
     public String getUrl() {
-        StringBuilder b = new StringBuilder("jdbc:postgresql:");
-        if (host != null) {
-            b.append("//").append(host);
-            if (port != null)
-                b.append(":").append(port);
-            b.append("/");
-        }
-        b.append(db);
-        return b.toString();
+        return buildCommonUrl("jdbc:postgresql:").toString();
     }
 
     @Override

@@ -46,15 +46,7 @@ public class OracleInstance extends DbInstance {
      */
     @Override
     public String getUrl() {
-        StringBuilder b = new StringBuilder("jdbc:oracle:thin:@");
-        if (host != null) {
-            b.append("//").append(host);
-            if (port != null)
-                b.append(":").append(port);
-            b.append("/");
-        }
-        b.append(db);
-        return b.toString();
+        return buildCommonUrl("jdbc:oracle:thin:@").toString();
     }
 
     @Override

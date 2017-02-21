@@ -2,7 +2,11 @@ package ch.ips.g2.applyalter;
 
 import com.thoughtworks.xstream.annotations.XStreamOmitField;
 
-import java.sql.*;
+import java.sql.Connection;
+import java.sql.DatabaseMetaData;
+import java.sql.DriverManager;
+import java.sql.ResultSet;
+import java.sql.SQLException;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -49,6 +53,24 @@ public abstract class DbInstance {
      * @return url for connectiong
      */
     public abstract String getUrl();
+
+    /**
+     * Build semi-standard URL for most JDBC connectors. Used by postgres, mysql, oracle.
+     *
+     * @param base base prefix, inclusing all neccesary colon but not slashes
+     * @return full URL with base, host (if present), port (if present) and db name
+     */
+    protected StringBuilder buildCommonUrl(String base) {
+        StringBuilder b = new StringBuilder(base);
+        if (host != null) {
+            b.append("//").append(host);
+            if (port != null)
+                b.append(":").append(port);
+            b.append("/");
+        }
+        b.append(db);
+        return b;
+    }
 
     /**
      * Engine identification: "DB2", "Postgresql", etc.
