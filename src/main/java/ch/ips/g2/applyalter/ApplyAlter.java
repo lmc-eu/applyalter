@@ -126,10 +126,10 @@ public class ApplyAlter {
     public static final String XML_SUFFIX = ".xml";
 
     private static final String[] INTERNAL_SCRIPTS = {
-            "applyalter_log_db2.xml", "applyalter_log_pgsql.xml",
+            "applyalter_log_db2.xml", "applyalter_log_pgsql.xml", "applyalter_log_mysql.xml",
             "applyalter_hash_db2.xml", "applyalter_hash_pgsql.xml",
             "applyalter_idindex_db2.xml", "applyalter_idindex_pgsql.xml",
-            "applyalter_pkg_db2.xml", "applyalter_pkg_pgsql.xml",
+            "applyalter_pkg_db2.xml", "applyalter_pkg_pgsql.xml", "applyalter_pkg_mysql.xml",
     };
 
     /**
@@ -436,7 +436,7 @@ public class ApplyAlter {
     /**
      * Apply alter scripts to all or selected database instances
      *
-     * @param alters alter scripts to apply
+     * @param alters     alter scripts to apply
      * @param sourceHash sha1 hash of source bundle; optional
      * @throws ApplyAlterException if one of statements can not be executed
      */
@@ -895,7 +895,7 @@ public class ApplyAlter {
             return;
         }
 
-        try{
+        try {
             final boolean useLogTable = !cmd.hasOption(NO_LOG_TABLE);
             final String env = cmd.getOptionValue(ENVIRONMENT_OPT);
 

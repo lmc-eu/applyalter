@@ -13,7 +13,7 @@ import java.sql.Connection;
 public class MysqlInstance extends DbInstance {
     protected static final String DB_DRIVER = "com.mysql.jdbc.Driver";
 
-    public static final String ENGINE = "mysql";
+    public static final String ENGINE = "MySQL";
 
     protected static void initDriver() {
         try {
@@ -58,4 +58,13 @@ public class MysqlInstance extends DbInstance {
         //do nothing; mysql does not support schema
     }
 
+    @Override
+    public String getLogTable() {
+        return "applyalter_log";
+    }
+
+    @Override
+    public String getPkgLogTable() {
+        return "applyalter_pkg";
+    }
 }

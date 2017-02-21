@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<alter>
+  <engine>MySQL</engine>
+  <check type="table" name="applyalter_log" />
+  <sql>
+    <statement>
+      create table applyalter_log (
+        at timestamp default current_timestamp,
+        username varchar(40),
+        id varchar(80),
+        duration bigint,
+        hash char(40)
+      )
+    </statement>
+  </sql>
+  <sql>
+    <statement>
+      create index applyalter_ididx on applyalter_log (id)
+    </statement>
+  </sql>
+</alter>
