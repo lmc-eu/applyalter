@@ -7,6 +7,7 @@ import java.sql.DatabaseMetaData;
 import java.sql.DriverManager;
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.util.Properties;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -27,10 +28,15 @@ public abstract class DbInstance {
     public String db;
     public String user;
     public String pass;
+    /**
+     * Extra properties.
+     */
+    protected Properties properties;
     @XStreamOmitField
     protected Connection con;
     @XStreamOmitField
     protected boolean used;
+
 
     public DbInstance() {
         super();
@@ -162,7 +168,27 @@ public abstract class DbInstance {
      */
     protected Connection connect(String url, RunContext ctx)
             throws SQLException {
-        return DriverManager.getConnection(url, user, pass);
+        return DriverManager.getConnection(url, makeConnectionProperties());
+    }
+
+    /**
+     * Create full connection properties for {@link DriverManager#getConnection(String, Properties)}.
+     *
+     * @return new instance of properties (called can modify)
+     */
+    protected Properties makeConnectionProperties() {
+        Properties info = new Properties();
+        if (this.properties != null) {
+            info.putAll(this.properties);
+        }
+        //following two conditions are actually defined by JDBC standard, but there are no constans for the keys :-(
+        if (user != null && user.length() > 0) {
+            info.put("user", user);
+        }
+        if (pass != null) { //note: password can actually be empty
+            info.put("password", pass);
+        }
+        return info;
     }
 
     /**

@@ -148,6 +148,17 @@
                 </dependency>
             </dependencies>
         </profile>
+        <profile>
+            <id>embed_postgresql_42</id>
+            <dependencies>
+                <dependency>
+                    <groupId>org.postgresql</groupId>
+                    <artifactId>postgresql</artifactId>
+                    <version>42.1.1.jre7</version>
+                    <scope>runtime</scope>
+                </dependency>
+            </dependencies>
+        </profile>
 
         <profile>
             <id>embed_mysql_5.1.18</id>

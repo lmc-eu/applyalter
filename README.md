@@ -56,6 +56,9 @@ Basic format is quite simple: the root element `db` contains list of database in
     <db>brand0</db>
     <user>podlesh</user>
     <pass>some_password</pass>
+    <properties>
+      <property name="loggerLevel" value="DEBUG"/>
+    </properties>
   </pginstance>
 </db>
 ```
@@ -82,6 +85,7 @@ case of single database per config file.
 | `db` | database name used by DBMS; **always required** |
 | `user` | username; required by `dbinstance`, optional for `pginstance` when `$HOME/.pgpass` is present and contains match |
 | `pass` | password; required by `dbinstance`, optional for `pginstance` when `$HOME/.pgpass` is present and contains match |
+| `properties` | additional JDBC properties (optional, usually not needed)  |
 
 
 Alterscript
