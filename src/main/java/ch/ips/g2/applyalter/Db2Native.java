@@ -60,14 +60,8 @@ public class Db2Native extends Db2Instance {
             throw new ApplyAlterException("Can not initialize db driver " + driver, e);
         }
 
-        if (user != null && user.length() > 0) {
-            //just used default user/password pair
-            return DriverManager.getConnection(url, user, pass);
-        } else {
-            //use system user
-            return DriverManager.getConnection(url);
-        }
-
+        //note: user checking is done in superclass implementation
+        return super.connect(url, ctx);
     }
 
     /**
