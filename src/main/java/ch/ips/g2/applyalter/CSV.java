@@ -8,7 +8,12 @@ import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.nio.charset.Charset;
-import java.sql.*;
+import java.sql.Connection;
+import java.sql.ParameterMetaData;
+import java.sql.PreparedStatement;
+import java.sql.SQLException;
+import java.sql.Timestamp;
+import java.sql.Types;
 import java.util.Arrays;
 import java.util.Map;
 
@@ -66,6 +71,9 @@ public class CSV extends AbstractStatement {
         PreparedStatement st = null;
         try {
             final String[] headRow = rdr.readNext();
+            if (headRow == null) {
+                throw new ApplyAlterException(String.format("missing top-level element: <datafile>%s</datafile>", getFile()));
+            }
             final int numParams = headRow.length;
             ctx.report(ReportLevel.STATEMENT_STEP, "CSV columns:%s%n", Arrays.asList(headRow));
 
@@ -150,9 +158,17 @@ public class CSV extends AbstractStatement {
             case Types.FLOAT:
                 st.setFloat(paramIdx, Float.parseFloat(paramVal));
                 break;
+            case Types.TIMESTAMP:
+            case Types.OTHER:
+                st.setTimestamp(paramIdx, getTimestamp(paramVal));
+                break;
             default:
                 throw new ApplyAlterException("unsupported type in CSV: " + paramTypes.getParameterTypeName(paramIdx));
         }
     }
 
+    // 2017-10-10 12:00:00.000
+    private Timestamp getTimestamp(String strValue) {
+        return strValue == null ? null : Timestamp.valueOf(strValue);
+    }
 }
