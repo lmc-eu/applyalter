@@ -4,7 +4,7 @@
     <modelVersion>4.0.0</modelVersion>
     <groupId>eu.lmc.tools</groupId>
     <artifactId>applyalter</artifactId>
-    <version>4.4</version>
+    <version>4.5</version>
     <name>applyalter</name>
 
     <properties>
@@ -224,8 +224,8 @@
                 <artifactId>maven-compiler-plugin</artifactId>
                 <version>3.6.0</version>
                 <configuration>
-                    <source>6</source>
-                    <target>6</target>
+                    <source>8</source>
+                    <target>8</target>
                 </configuration>
             </plugin>
           <plugin>

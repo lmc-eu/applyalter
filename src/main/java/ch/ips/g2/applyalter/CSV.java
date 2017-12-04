@@ -14,6 +14,8 @@ import java.sql.PreparedStatement;
 import java.sql.SQLException;
 import java.sql.Timestamp;
 import java.sql.Types;
+import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
 import java.util.Arrays;
 import java.util.Map;
 
@@ -105,7 +107,7 @@ public class CSV extends AbstractStatement {
                 }
                 execCnt++;
 
-                if (step != null && step.intValue() > 0 && (execCnt % step) == 0) {
+                if (step != null && step > 0 && (execCnt % step) == 0) {
                     commitStep(ctx, connection);
                 }
 
@@ -162,6 +164,15 @@ public class CSV extends AbstractStatement {
             case Types.OTHER:
                 st.setTimestamp(paramIdx, getTimestamp(paramVal));
                 break;
+            case Types.BINARY:
+                try {
+                    byte[] b = paramVal.getBytes("UTF-8");
+                    int sz = b.length;
+                    st.setBinaryStream(paramIdx, new ByteArrayInputStream(b), sz);
+                } catch (Exception ex) {
+                    throw new RuntimeException(ex);
+                }
+                break;
             default:
                 throw new ApplyAlterException("unsupported type in CSV: " + paramTypes.getParameterTypeName(paramIdx));
         }
@@ -169,6 +180,11 @@ public class CSV extends AbstractStatement {
 
     // 2017-10-10 12:00:00.000
     private Timestamp getTimestamp(String strValue) {
-        return strValue == null ? null : Timestamp.valueOf(strValue);
+        try {
+            return strValue == null ? null : Timestamp.valueOf(strValue);
+        } catch (IllegalArgumentException ex) {
+            LocalDateTime dt = LocalDateTime.parse(strValue, DateTimeFormatter.ofPattern("yyyy-MM-dd-HH.mm.ss.SSS000"));
+            return Timestamp.valueOf(dt);
+        }
     }
 }
