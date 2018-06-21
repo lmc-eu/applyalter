@@ -80,7 +80,7 @@ public class Db2Native extends Db2Instance {
             DocumentBuilderFactory docBuildFact = DocumentBuilderFactory.newInstance();
             DocumentBuilder docBuilder = docBuildFact.newDocumentBuilder();
             final Element root = docBuilder.parse(fis).getDocumentElement();
-            final String envName = root.getAttribute("name").trim();
+            final String envName = root.getAttribute("tier").trim();
             if (envName.length() > 0) {
                 runContext.report(ReportLevel.DETAIL, "environment read from %s: %s", cfgPath, envName);
                 return envName;
