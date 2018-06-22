@@ -3,6 +3,9 @@ package ch.ips.g2.applyalter;
 import au.com.bytecode.opencsv.CSVReader;
 import com.thoughtworks.xstream.annotations.XStreamAlias;
 import org.apache.commons.lang.StringUtils;
+import org.joda.time.DateTime;
+import org.joda.time.format.DateTimeFormat;
+import org.joda.time.format.DateTimeFormatter;
 
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
@@ -105,7 +108,7 @@ public class CSV extends AbstractStatement {
                 }
                 execCnt++;
 
-                if (step != null && step.intValue() > 0 && (execCnt % step) == 0) {
+                if (step != null && step > 0 && (execCnt % step) == 0) {
                     commitStep(ctx, connection);
                 }
 
@@ -162,6 +165,15 @@ public class CSV extends AbstractStatement {
             case Types.OTHER:
                 st.setTimestamp(paramIdx, getTimestamp(paramVal));
                 break;
+            case Types.BINARY:
+                try {
+                    byte[] b = paramVal.getBytes("UTF-8");
+                    int sz = b.length;
+                    st.setBinaryStream(paramIdx, new ByteArrayInputStream(b), sz);
+                } catch (Exception ex) {
+                    throw new RuntimeException(ex);
+                }
+                break;
             default:
                 throw new ApplyAlterException("unsupported type in CSV: " + paramTypes.getParameterTypeName(paramIdx));
         }
@@ -169,6 +181,12 @@ public class CSV extends AbstractStatement {
 
     // 2017-10-10 12:00:00.000
     private Timestamp getTimestamp(String strValue) {
-        return strValue == null ? null : Timestamp.valueOf(strValue);
+        try {
+            return strValue == null ? null : Timestamp.valueOf(strValue);
+        } catch (IllegalArgumentException ex) {
+            DateTimeFormatter fmt = DateTimeFormat.forPattern("yyyy-MM-dd-HH.mm.ss.SSS000");
+            DateTime dt = fmt.parseDateTime(strValue);
+            return new Timestamp(dt.getMillis());
+        }
     }
 }
