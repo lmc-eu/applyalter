@@ -1,0 +1,14 @@
+<?xml version="1.0"?>
+<db>
+  <environment>devel3</environment>
+  <pginstance>
+    <id>dbuser</id>
+    <type>master</type>
+    <db>users</db>
+    <host>dbuser.dev7.lmc</host>
+    <port>5432</port>
+    <user>user_apply</user>
+    <pass>user_apply</pass>
+  </pginstance>
+</db>
+
