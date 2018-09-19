@@ -15,12 +15,14 @@ import org.apache.commons.cli.Options;
 import org.apache.commons.cli.UnrecognizedOptionException;
 import org.apache.commons.io.IOUtils;
 
+import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 import javax.xml.validation.Validator;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.OutputStream;
+import java.io.UnsupportedEncodingException;
 import java.net.URL;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
@@ -33,14 +35,17 @@ import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.EnumSet;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 import java.util.TreeSet;
 import java.util.jar.Attributes;
 import java.util.jar.JarFile;
 import java.util.jar.Manifest;
+import java.util.stream.Collectors;
 
 import static ch.ips.g2.applyalter.ReportLevel.*;
 
@@ -280,7 +285,8 @@ public class ApplyAlter {
                 OracleInstance.class,
                 MysqlInstance.class,
                 Db2Instance.class,
-                Db2Native.class
+                Db2Native.class,
+                DbCustomParam.class
         };
     }
 
@@ -294,7 +300,7 @@ public class ApplyAlter {
         }
 
         final RunContext backupCtx = this.runContext;
-        AlterLoader alterLoader = new AlterLoader(xstream, validator);
+        AlterLoader alterLoader = new AlterLoader(xstream, validator, createPlaceHolderMap());
 
         List<Alter> internalAlters = new ArrayList<Alter>(INTERNAL_SCRIPTS.length);
         for (final String alterName : INTERNAL_SCRIPTS) {
@@ -312,6 +318,23 @@ public class ApplyAlter {
         this.runContext = backupCtx;
     }
 
+    @Nonnull
+    private Map<String, byte[]> createPlaceHolderMap() {
+        if(db.placeholders == null) {
+            return new HashMap<>();
+        }
+        return db.placeholders.stream().collect(Collectors.toMap(
+                DbCustomParam::getName,
+                p -> {
+                    try {
+                        return p.getValue().getBytes("UTF-8");
+                    } catch (UnsupportedEncodingException e) {
+                        throw new IllegalStateException(e);
+                    }
+                }
+        ));
+    }
+
 
     /**
      * Apply alter scripts (.xml/.zip) to all or selected database instances
@@ -321,7 +344,7 @@ public class ApplyAlter {
      */
     public Alters apply(boolean validateXml, String... alterFiles)
             throws ApplyAlterException {
-        AlterLoader ldr = new AlterLoader(xstream, validator);
+        AlterLoader ldr = new AlterLoader(xstream, validator, createPlaceHolderMap());
         Alters a = ldr.loadAlters(alterFiles);
         // actually apply them
         apply(a.getAlters(), a.getSourceHash());

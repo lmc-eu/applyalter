@@ -41,10 +41,12 @@ public class AlterLoader {
      * XML validator
      */
     protected final Validator validator;
+    private final Map<String, byte[]> placeHolderMap;
 
-    public AlterLoader(XStream xstream, Validator validator) {
+    public AlterLoader(XStream xstream, Validator validator, @Nonnull Map<String, byte[]> placeHolderMap) {
         this.xstream = xstream;
         this.validator = validator;
+        this.placeHolderMap = placeHolderMap;
     }
 
     /**
@@ -93,9 +95,9 @@ public class AlterLoader {
         InputStream inputStream = null;
         try {
             if (validator != null) {
-                validator.validate(new StreamSource(source.openScript()));
+                validator.validate(new StreamSource(createAlterSourceStream(source)));
             }
-            inputStream = source.openScript();
+            inputStream = createAlterSourceStream(source);
             //compute hash on-the-fly
             inputStream = wrapDigesting(inputStream, digest);
             inputStream = wrapDigesting(inputStream, extraDigest);
@@ -141,6 +143,10 @@ public class AlterLoader {
         alterscript.setHash(bytes2hex(hashBytes));
 
         return alterscript;
+    }
+
+    private InputStream createAlterSourceStream(final AlterSource source) throws IOException {
+        return placeHolderMap.isEmpty() ? source.openScript() : new ReplacingInputStream(source.openScript(), placeHolderMap);
     }
 
     /**
@@ -254,7 +260,7 @@ public class AlterLoader {
     /**
      * Create a list of Alter instances from XML serialized from files stored in .zip.
      * List is sorted using {@link ch.ips.g2.applyalter.ZipEntryNameComparator}.
-     * <p />
+     * <p/>
      * Implementation note: the input zip is actually read several times.
      *
      * @param zipfile zip file containing XML files
