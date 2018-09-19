@@ -3,9 +3,6 @@ package ch.ips.g2.applyalter;
 import au.com.bytecode.opencsv.CSVReader;
 import com.thoughtworks.xstream.annotations.XStreamAlias;
 import org.apache.commons.lang.StringUtils;
-import org.joda.time.DateTime;
-import org.joda.time.format.DateTimeFormat;
-import org.joda.time.format.DateTimeFormatter;
 
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
@@ -17,6 +14,8 @@ import java.sql.PreparedStatement;
 import java.sql.SQLException;
 import java.sql.Timestamp;
 import java.sql.Types;
+import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
 import java.util.Arrays;
 import java.util.Map;
 
@@ -184,9 +183,8 @@ public class CSV extends AbstractStatement {
         try {
             return strValue == null ? null : Timestamp.valueOf(strValue);
         } catch (IllegalArgumentException ex) {
-            DateTimeFormatter fmt = DateTimeFormat.forPattern("yyyy-MM-dd-HH.mm.ss.SSS000");
-            DateTime dt = fmt.parseDateTime(strValue);
-            return new Timestamp(dt.getMillis());
+            LocalDateTime dt = LocalDateTime.parse(strValue, DateTimeFormatter.ofPattern("yyyy-MM-dd-HH.mm.ss.SSS000"));
+            return Timestamp.valueOf(dt);
         }
     }
 }
