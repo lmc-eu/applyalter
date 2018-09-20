@@ -91,9 +91,9 @@ case of single database per config file.
 | `pass` | password; required by `dbinstance`, optional for `pginstance` when `$HOME/.pgpass` is present and contains match |
 | `properties` | additional JDBC properties (optional, usually not needed)  |
 
-Element placeholders contains list of parameters which can be used in apply alter statement.
-Parameters are surrounded with parent bracket.
-e.g. if alter script statement contains **{{roleRW}}** it will be replaced by **pgs_brand0_rw**.  
+Element **placeholders** contains list of parameters which can be used in apply alter script.
+Parameters are surrounded with double curly brackets.
+e.g. if alter script contains **{{roleRW}}** it will be replaced by **pgs_brand0_rw**.  
 
 Alterscript
 -----------
