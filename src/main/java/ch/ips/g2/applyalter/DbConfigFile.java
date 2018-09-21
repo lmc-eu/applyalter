@@ -13,5 +13,7 @@ import java.util.List;
 public class DbConfigFile {
     protected String environment;
     @XStreamImplicit()
-    protected final List<DbInstance> instances = new ArrayList<DbInstance>();
+    protected final List<DbInstance> instances = new ArrayList<>();
+
+    protected List<DbCustomParam> placeholders;
 }

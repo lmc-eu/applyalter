@@ -4,11 +4,11 @@
     <modelVersion>4.0.0</modelVersion>
     <groupId>eu.lmc.tools</groupId>
     <artifactId>applyalter</artifactId>
-    <version>4.7</version>
+    <version>4.8</version>
     <name>applyalter</name>
 
     <properties>
-    <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+        <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
     </properties>
 
 
@@ -63,16 +63,16 @@
                     <artifactId>jmxtools</artifactId>
                 </exclusion>
                 <exclusion>
-                  <groupId>javax.mail</groupId>
-                  <artifactId>mail</artifactId>
+                    <groupId>javax.mail</groupId>
+                    <artifactId>mail</artifactId>
                 </exclusion>
                 <exclusion>
-                  <groupId>javax.jms</groupId>
-                  <artifactId>jms</artifactId>
+                    <groupId>javax.jms</groupId>
+                    <artifactId>jms</artifactId>
                 </exclusion>
-               <exclusion>
-                  <groupId>com.sun.jmx</groupId>
-                  <artifactId>jmxri</artifactId>
+                <exclusion>
+                    <groupId>com.sun.jmx</groupId>
+                    <artifactId>jmxri</artifactId>
                 </exclusion>
             </exclusions>
         </dependency>
@@ -89,11 +89,6 @@
             <version>1.9.0</version>
             <scope>test</scope>
         </dependency>
-        <dependency>
-            <groupId>joda-time</groupId>
-            <artifactId>joda-time</artifactId>
-            <version>2.1</version>
-        </dependency>
     </dependencies>
 
     <profiles>
@@ -102,23 +97,6 @@
          They are not enabled by default, because this might violate licence, make the project unbuildable (db2 jdbc
          is not publicly available) and might have issues with compatability.
          -->
-        <profile>
-            <id>embed_db2_9.7</id>
-            <dependencies>
-                <dependency>
-                    <groupId>com.ibm.db2</groupId>
-                    <artifactId>db2jcc4</artifactId>
-                    <version>9.7.6</version>
-                    <scope>runtime</scope>
-                </dependency>
-                <dependency>
-                    <groupId>com.ibm.db2</groupId>
-                    <artifactId>db2jcc_license_cu</artifactId>
-                    <version>9.7</version>
-                    <scope>runtime</scope>
-                </dependency>
-            </dependencies>
-        </profile>
         <profile>
             <id>embed_db2_10.5.0.6</id>
             <dependencies>
@@ -131,46 +109,24 @@
             </dependencies>
         </profile>
         <profile>
-            <id>embed_postgresql_8</id>
-            <dependencies>
-                <dependency>
-                    <groupId>postgresql</groupId>
-                    <artifactId>postgresql</artifactId>
-                    <version>8.3-603.jdbc4</version>
-                    <scope>runtime</scope>
-                </dependency>
-            </dependencies>
-        </profile>
-        <profile>
-            <id>embed_postgresql_9.1</id>
-            <dependencies>
-                <dependency>
-                    <groupId>postgresql</groupId>
-                    <artifactId>postgresql</artifactId>
-                    <version>9.1-901-1.jdbc4</version>
-                    <scope>runtime</scope>
-                </dependency>
-            </dependencies>
-        </profile>
-        <profile>
             <id>embed_postgresql_42</id>
             <dependencies>
                 <dependency>
                     <groupId>org.postgresql</groupId>
                     <artifactId>postgresql</artifactId>
-                    <version>42.1.1.jre7</version>
+                    <version>42.2.5</version>
                     <scope>runtime</scope>
                 </dependency>
             </dependencies>
         </profile>
 
         <profile>
-            <id>embed_mysql_5.1.18</id>
+            <id>embed_mysql_8.0.12</id>
             <dependencies>
                 <dependency>
                     <groupId>mysql</groupId>
                     <artifactId>mysql-connector-java</artifactId>
-                    <version>5.1.18</version>
+                    <version>8.0.12</version>
                 </dependency>
             </dependencies>
         </profile>
@@ -228,52 +184,54 @@
                 <artifactId>maven-compiler-plugin</artifactId>
                 <version>3.6.0</version>
                 <configuration>
-                    <source>7</source>
-                    <target>7</target>
+                    <source>8</source>
+                    <target>8</target>
                 </configuration>
             </plugin>
-          <plugin>
-            <groupId>org.apache.maven.plugins</groupId>
-            <artifactId>maven-shade-plugin</artifactId>
-            <version>2.4</version>
-            <configuration>
-              <createDependencyReducedPom>false</createDependencyReducedPom>
-              <filters>
-                <filter>
-                  <artifact>*:*</artifact>
-                  <excludes>
-                    <exclude>META-INF/*.SF</exclude>
-                    <exclude>META-INF/*.DSA</exclude>
-                    <exclude>META-INF/*.RSA</exclude>
-                  </excludes>
-                </filter>
-              </filters>
-              <transformers>
-                <transformer implementation="org.apache.maven.plugins.shade.resource.ServicesResourceTransformer"/>
-                <transformer implementation="org.apache.maven.plugins.shade.resource.ManifestResourceTransformer">
-                  <manifestEntries>
-                    <Main-Class>ch.ips.g2.applyalter.ApplyAlter</Main-Class>
-                    <version>${project.version}</version>
-                    <groupId>${project.groupId}</groupId>
-                    <artifactId>${project.artifactId}</artifactId>
-                    <Class-Path>db2jcc.jar db2jcc4.jar postgresql.jar ojdbc14.jar ojdbc5.jar</Class-Path>
-                    <Hudson-Build-ID>${BUILD_ID}</Hudson-Build-ID>
-                    <Hudson-Build-URL>${BUILD_URL}</Hudson-Build-URL>
-                    <git-branch>${GIT_BRANCH}</git-branch>
-                    <git-commit>${GIT_COMMIT}</git-commit>
-                  </manifestEntries>
-                </transformer>
-              </transformers>
-            </configuration>
-            <executions>
-              <execution>
-                <phase>package</phase>
-                <goals>
-                  <goal>shade</goal>
-                </goals>
-              </execution>
-            </executions>
-          </plugin>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-shade-plugin</artifactId>
+                <version>2.4</version>
+                <configuration>
+                    <createDependencyReducedPom>false</createDependencyReducedPom>
+                    <filters>
+                        <filter>
+                            <artifact>*:*</artifact>
+                            <excludes>
+                                <exclude>META-INF/*.SF</exclude>
+                                <exclude>META-INF/*.DSA</exclude>
+                                <exclude>META-INF/*.RSA</exclude>
+                            </excludes>
+                        </filter>
+                    </filters>
+                    <transformers>
+                        <transformer
+                                implementation="org.apache.maven.plugins.shade.resource.ServicesResourceTransformer"/>
+                        <transformer
+                                implementation="org.apache.maven.plugins.shade.resource.ManifestResourceTransformer">
+                            <manifestEntries>
+                                <Main-Class>ch.ips.g2.applyalter.ApplyAlter</Main-Class>
+                                <version>${project.version}</version>
+                                <groupId>${project.groupId}</groupId>
+                                <artifactId>${project.artifactId}</artifactId>
+                                <Class-Path>db2jcc.jar db2jcc4.jar postgresql.jar ojdbc14.jar ojdbc5.jar</Class-Path>
+                                <Hudson-Build-ID>${BUILD_ID}</Hudson-Build-ID>
+                                <Hudson-Build-URL>${BUILD_URL}</Hudson-Build-URL>
+                                <git-branch>${GIT_BRANCH}</git-branch>
+                                <git-commit>${GIT_COMMIT}</git-commit>
+                            </manifestEntries>
+                        </transformer>
+                    </transformers>
+                </configuration>
+                <executions>
+                    <execution>
+                        <phase>package</phase>
+                        <goals>
+                            <goal>shade</goal>
+                        </goals>
+                    </execution>
+                </executions>
+            </plugin>
         </plugins>
     </build>
 

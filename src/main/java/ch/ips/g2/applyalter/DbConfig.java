@@ -21,6 +21,7 @@ public class DbConfig {
     protected String environment;
     protected final List<DbInstance> instances;
     protected final Set<String> knownDbTypes;
+    protected List<DbCustomParam> placeholders;
 
     /**
      * fail with first exception or collect them and report at one
@@ -30,6 +31,7 @@ public class DbConfig {
     public DbConfig(DbConfigFile dcf, boolean ignorefailures, RunContext ctx) {
         this(dcf.instances, ignorefailures, ctx);
         this.environment = dcf.environment;
+        this.placeholders = dcf.placeholders;
     }
 
     public DbConfig(List<DbInstance> configuredDatabases, boolean ignorefailures, RunContext ctx) {
