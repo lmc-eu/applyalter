@@ -8,6 +8,7 @@ import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.nio.charset.Charset;
+import java.nio.charset.StandardCharsets;
 import java.sql.Connection;
 import java.sql.ParameterMetaData;
 import java.sql.PreparedStatement;
@@ -16,7 +17,9 @@ import java.sql.Timestamp;
 import java.sql.Types;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
+import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.List;
 import java.util.Map;
 
 /**
@@ -52,6 +55,28 @@ public class CSV extends AbstractStatement {
 
 
     /**
+     * Prepared statement parameters meta info.
+     */
+    private static class ParamMeta {
+        private int typeId;
+        private String name;
+        ;;
+
+        ParamMeta(int typeId, String name) {
+            this.typeId = typeId;
+            this.name = name;
+        }
+
+        int getTypeId() {
+            return typeId;
+        }
+
+        String getName() {
+            return name;
+        }
+    }
+
+    /**
      * Sql statement is just the statement itself.
      */
     public String getSqlStatement() {
@@ -82,12 +107,16 @@ public class CSV extends AbstractStatement {
             //hack: any LOBs must be _after_ CSV columns
             st = prepareStatement(connection, sql, datafiles, numParams);
 
-            final ParameterMetaData paramTypes = st.getParameterMetaData();
-            if (paramTypes.getParameterCount() != numParams) {
+            // Warning: postgres jdbc driver 42.2.5 criples (in setTimestamp) the meta data, make copy of them!
+            final ParameterMetaData paramTypesCripled = st.getParameterMetaData();
+            if (paramTypesCripled.getParameterCount() != numParams) {
                 throw new ApplyAlterException(String.format("invalid CSV: %d columns for %d query parameters",
-                        numParams, paramTypes.getParameterCount()));
+                        numParams, paramTypesCripled.getParameterCount()));
             }
-
+            List<ParamMeta> pTypes = new ArrayList<>();
+            for (int idx = 1; idx <= numParams; idx++) {
+                pTypes.add(new ParamMeta(paramTypesCripled.getParameterType(idx), paramTypesCripled.getParameterTypeName(idx)));
+            }
             int rows = 0;
             int execCnt = 0;
             final Integer step = getStep();
@@ -97,7 +126,7 @@ public class CSV extends AbstractStatement {
                 //fill parameters
                 for (int paramIdx = 1; paramIdx <= numParams; paramIdx++) {
                     String paramVal = row[paramIdx - 1];
-                    fillParam(st, paramTypes, paramIdx, paramVal);
+                    fillParam(st, pTypes.get(paramIdx - 1), paramIdx, paramVal);
                 }
 
                 //execute
@@ -126,9 +155,9 @@ public class CSV extends AbstractStatement {
     /**
      * Check the value type, parse value from CSV and call appropriate setXXX method.
      */
-    private void fillParam(PreparedStatement st, ParameterMetaData paramTypes, int paramIdx, String paramVal)
+    private void fillParam(PreparedStatement st, final ParamMeta meta, int paramIdx, String paramVal)
             throws SQLException {
-        final int type = paramTypes.getParameterType(paramIdx);
+        final int type = meta.getTypeId();
         //string types are special: empty string is not null!
         switch (type) {
             case Types.VARCHAR:
@@ -166,7 +195,7 @@ public class CSV extends AbstractStatement {
                 break;
             case Types.BINARY:
                 try {
-                    byte[] b = paramVal.getBytes("UTF-8");
+                    byte[] b = paramVal.getBytes(StandardCharsets.UTF_8);
                     int sz = b.length;
                     st.setBinaryStream(paramIdx, new ByteArrayInputStream(b), sz);
                 } catch (Exception ex) {
@@ -174,7 +203,7 @@ public class CSV extends AbstractStatement {
                 }
                 break;
             default:
-                throw new ApplyAlterException("unsupported type in CSV: " + paramTypes.getParameterTypeName(paramIdx));
+                throw new ApplyAlterException("unsupported type in CSV: " + meta.getName());
         }
     }
 
