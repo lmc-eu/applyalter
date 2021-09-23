@@ -138,9 +138,9 @@ public abstract class DbInstance {
     /**
      * Get a current connection to this database instance with auto commit turned off
      *
+     * @param ctx
      * @return connection to this database instance
      * @throws ApplyAlterException if connection could not be acquired
-     * @param ctx
      */
     public Connection getConnection(RunContext ctx) throws ApplyAlterException {
         if (con == null) {
@@ -159,7 +159,6 @@ public abstract class DbInstance {
      * The real implementation of {@link #getConnection(RunContext)}. Default implementation just calls
      * {@link DriverManager#getConnection(String, String, String)}, subclass can obtain the connection
      * by some other way.
-     *
      *
      * @param url JDBC url, made by {@link #getUrl()}
      * @param ctx
@@ -372,7 +371,7 @@ public abstract class DbInstance {
      *
      * @param runContext run contet (used for logging)
      * @return environment, null if guess fails
-     *         <br /> might be non-normalized (dev1, for example).
+     * <br /> might be non-normalized (dev1, for example).
      */
     public String guessEnvironment(RunContext runContext) {
         if (getHost() == null)
@@ -388,4 +387,27 @@ public abstract class DbInstance {
         }
     }
 
+    //------------------------------------------------------------------------------------------------------------------
+    // dialect-specific methods
+
+    /**
+     * Decide the fully classified table name for temporary table.
+     *
+     * @param tableBaseName Base table name (unqualified)
+     * @return Fully classified table name
+     */
+    public String makeTemporaryTableName(String tableBaseName) {
+        return tableBaseName;
+    }
+
+    /**
+     * Return SQL creating temporary table with given name, created from given query.
+     *
+     * @param tableName Qualified table name
+     * @param query     Select query which defines table structure and data
+     * @return SQL
+     */
+    public String makeCreateTemporaryTableAsSql(String tableName, String query) {
+        throw new UnsupportedOperationException("Temporary tables not implemented for current database type");
+    }
 }

@@ -19,6 +19,12 @@ public class Db2Instance extends DbInstance {
 
     public static final String ENGINE = "DB2";
 
+    private static final String SQL_CREATE_TEMPORARY_TABLE =
+            "DECLARE GLOBAL TEMPORARY TABLE %s AS (%s) DEFINITION ONLY " +
+                    " on commit preserve rows" +
+                    " NOT LOGGED on rollback delete rows" +
+                    " WITH REPLACE";
+
     static {
         try {
             Class.forName(DB_DRIVER);
@@ -108,4 +114,13 @@ public class Db2Instance extends DbInstance {
         }
     }
 
+    @Override
+    public String makeTemporaryTableName(String tableBaseName) {
+        return "session." + tableBaseName;
+    }
+
+    @Override
+    public String makeCreateTemporaryTableAsSql(String tableName, String query) {
+        return String.format(SQL_CREATE_TEMPORARY_TABLE, tableName, query);
+    }
 }

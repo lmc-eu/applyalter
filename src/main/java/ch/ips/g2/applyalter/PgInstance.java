@@ -13,7 +13,7 @@ import java.sql.SQLException;
 import java.util.List;
 
 /**
- * PostgreSQL instance with optional hostname and port
+ * PostgreSQL instance with optional hostname and port.
  *
  * @author mcaslavsky
  */
@@ -22,6 +22,8 @@ public class PgInstance extends DbInstance {
     protected static final String DB_DRIVER = "org.postgresql.Driver";
 
     public static final String ENGINE = "Postgresql";
+
+    private static final String SQL_CREATE_TEMPORARY_TABLE = "create temporary table %s AS %s";
 
     public String role;
 
@@ -201,5 +203,8 @@ public class PgInstance extends DbInstance {
         return null;
     }
 
-
+    @Override
+    public String makeCreateTemporaryTableAsSql(String tableName, String query) {
+        return String.format(SQL_CREATE_TEMPORARY_TABLE, tableName, query);
+    }
 }

@@ -89,25 +89,6 @@ public class MigrationIdList extends AbstractMigration {
     public static final String TEMP_TABLE_MAIN = "MGR_IDS";
     public static final String TEMP_TABLE_BATCH = "MIG_BATCH";
 
-
-    /**
-     * Get full temporary table name.
-     *
-     * @param db database instance, might contain dialect information in fitire
-     * @return table name (fully quelified)
-     */
-    protected String makeTempTableName(DbInstance db, String baseName) {
-        //so far, only DB2 is supported
-        return "session." + baseName;
-    }
-
-
-    private static final String SQL_CREATE_TEMPORARY_TABLE =
-            "DECLARE GLOBAL TEMPORARY TABLE %s AS (%s) DEFINITION ONLY " +
-                    " on commit preserve rows" +
-                    " NOT LOGGED on rollback delete rows" +
-                    " WITH REPLACE";
-
     /**
      * Create temporary table. This method is DB2-specific!
      *
@@ -121,7 +102,7 @@ public class MigrationIdList extends AbstractMigration {
         if (getIdquery() == null)
             throw new ApplyAlterException("invalid apply script: missing source query for " + this);
 
-        String tableName = makeTempTableName(dbConn, tableBaseName);
+        String tableName = dbConn.makeTemporaryTableName(tableBaseName);
 
         ctx.report(STATEMENT_STEP, "creating temporary table %s", tableName);
 
@@ -129,7 +110,7 @@ public class MigrationIdList extends AbstractMigration {
             final Connection connection = dbConn.getConnection(ctx);
 
             //step 1: create temporary table with the columns of query
-            String sql = String.format(SQL_CREATE_TEMPORARY_TABLE, tableName, getIdquery().trim());
+            String sql = dbConn.makeCreateTemporaryTableAsSql(tableName, getIdquery().trim());
             ctx.report(DETAIL, "creating temporary table by query: %s", sql);
             DbUtils.executeUpdate(connection, sql);
 
@@ -165,8 +146,8 @@ public class MigrationIdList extends AbstractMigration {
                 String.format("(select * from %s)", tableBatch)
         );
         if (mainQuery.replacements < 1) {
-            throw new ApplyAlterException("invalid alter script: no %s in the query; %s", getPlaceholder() == null ? "<null>"
-                    : getPlaceholder(), this.toString());
+            throw new ApplyAlterException("invalid alter script: no %s in the query; %s",
+                    getPlaceholder() == null ? getDefaultPlaceholder() : getPlaceholder(), this.toString());
         }
 
 
