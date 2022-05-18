@@ -183,6 +183,8 @@ public class MigrationIdList extends AbstractMigration {
             int updatedCount = 0;
             int processedCount = 0;
             do {
+                //batch, step 0: clean the batch
+                stCleanBatchTable.executeUpdate();
                 //batch, step 1: select the batch
                 final int copied = stCopyBatch.executeUpdate();
                 if (copied < 1) {
@@ -190,8 +192,12 @@ public class MigrationIdList extends AbstractMigration {
                     break;
                 }
                 batchCount++;
+                stDeleteBatch.executeUpdate(); // remove batch from IDS
+                // batch, step 2: always commit movement to the next batch, even if alter script is running in DRY mode
+                // IMPORTANT: here should be just temporary tables!!!
+                connection.commit();
 
-                //ctx.report( DETAIL, "  batch %d: %d rows", batchCount, copied );
+                // batch, step 3: execute update
                 final int updated = stMain.executeUpdate();
                 updatedCount += updated;
                 processedCount += copied;
@@ -199,11 +205,7 @@ public class MigrationIdList extends AbstractMigration {
                 ctx.report(DETAIL, "  batch %d/%d: %d of %d updated",
                         batchCount, supposedBatchCount, updated, copied);
 
-                //and delete batch
-                stDeleteBatch.executeUpdate();
-                stCleanBatchTable.executeUpdate();
-
-                //the most important thing: commit
+                // batch, step 4: commit or rollback update depending on run mode
                 commitStep(ctx, connection);
 
                 //ctx.report( DETAIL, "   batch cleaned up, going to next one" );
