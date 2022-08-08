@@ -320,7 +320,7 @@ public class ApplyAlter {
 
     @Nonnull
     private Map<String, byte[]> createPlaceHolderMap() {
-        if(db.placeholders == null) {
+        if (db.placeholders == null) {
             return new HashMap<>();
         }
         return db.placeholders.stream().collect(Collectors.toMap(
@@ -485,6 +485,7 @@ public class ApplyAlter {
     }
 
     private void applySingleAlter(final Alter a, ApplyAlterExceptions aae) {
+        db.setDbAutocommit(a.autocommit);
         //logged as property//  runContext.report(ALTER, "alterscript: %s", a.getId());
         runContext.reportProperty(ALTER, "id", a.getId());
         runContext.reportProperty(ALTER, "hash", a.getHash());
@@ -557,20 +558,23 @@ public class ApplyAlter {
                 }
             }
         }
-        // commit each alter on used databases
-        if (aae.isEmpty() && RunMode.SHARP.equals(getRunMode())) {
-            db.commitUsed(runContext);
-        } else {
-            db.rollbackUsed(runContext);
+        if (!a.autocommit) {
+            // commit each alter on used databases
+            if (aae.isEmpty() && RunMode.SHARP.equals(getRunMode())) {
+                db.commitUsed(runContext);
+            } else {
+                db.rollbackUsed(runContext);
+            }
         }
         //structured report: pick one status - in most cases, there is only one result anyway
         if (results.size() == 1) {
             runContext.reportProperty(ALTER, "result", results.iterator().next());
         }
+        db.resetDbAutocommit();
     }
 
     /**
-     * Execute statement and handle errors (ignoge if configured so).
+     * Execute statement and handle errors (ignore if configured so).
      *
      * @param db database instance
      * @param a  the alterscript
@@ -579,7 +583,7 @@ public class ApplyAlter {
     private void executeStatement(DbInstance db, Alter a, AlterStatement s)
             throws ApplyAlterException {
         Savepoint savepoint = null;
-        if (db.isSavepointNeededForIgnoredFailure() &&
+        if (db.isSavepointNeededForIgnoredFailure() && !a.autocommit &&
                 (s.canFail() || s.getIgnoredSqlStates() != null || s.getIgnoredSqlCodes() != null)) {
             try {
                 savepoint = db.getConnection(runContext).setSavepoint();

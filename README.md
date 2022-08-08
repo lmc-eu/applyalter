@@ -104,6 +104,9 @@ and provide some advanced features. Commands are then executed.
 *Whenever possible, each alterscript is executed in single transaction, with rollback on error. On success, record about
 execution is stored to special table `APPLYALTER_LOG` .* 
 
+*This default behaviour can be altered by setting alterscript `autocommit` to `true`. Every sql command in the alterscript is 
+then committed right away after execution. Rollback is NOT available. This should be used with caution.*
+
 Package log table and queries
 -----------------------------
 All alterscripts executed in single invocation (ie all commandline arguments)
