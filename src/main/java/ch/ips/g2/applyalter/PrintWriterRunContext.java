@@ -8,7 +8,7 @@ import java.text.SimpleDateFormat;
 import java.util.Date;
 
 /**
- * RunContext used to print to strandad output or to file.
+ * RunContext used to print to standard output or to file.
  *
  * @author Kamil Podlesak &lt;kamil.podlesak@ips-ag.cz&gt;
  * @version $Id$

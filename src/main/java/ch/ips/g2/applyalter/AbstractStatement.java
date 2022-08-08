@@ -115,7 +115,7 @@ public abstract class AbstractStatement implements AlterStatement {
     );
 
     /**
-     * Prepare simple parameterless SQL statement, replacacing special placeholders by datafile LOBs.
+     * Prepare simple parameterless SQL statement, replacing special placeholders by datafile LOBs.
      */
     protected PreparedStatement prepareStatement(Connection dbConn, String osql, Map<String, byte[]> datafiles,
                                                  int paramOffset)
