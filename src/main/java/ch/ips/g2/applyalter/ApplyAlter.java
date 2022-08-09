@@ -485,9 +485,9 @@ public class ApplyAlter {
     }
 
     private void applySingleAlter(final Alter a, ApplyAlterExceptions aae) {
-        // There is no simple way to rollback auto committed command executions, so there is only SHARP mode allowed.
-        if (a.autocommit && !RunMode.SHARP.equals(getRunMode())) {
-            runContext.report(ALTER, "Alterscript with autocommit ON can be run only in %s mode.", RunMode.SHARP.name());
+        // There is no simple way to rollback auto committed command executions, so the alterscript in DRY mode is skipped.
+        if (a.autocommit && RunMode.DRY.equals(getRunMode())) {
+            runContext.report(ALTER, "Alterscript with autocommit ON can't be run in %s mode.", RunMode.DRY.name());
             runContext.reportProperty(ALTER, "result", ReportedResult.SKIPPED);
             return;
         }
