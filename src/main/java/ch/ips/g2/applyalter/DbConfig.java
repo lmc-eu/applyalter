@@ -22,6 +22,8 @@ public class DbConfig {
     protected final List<DbInstance> instances;
     protected final Set<String> knownDbTypes;
     protected List<DbCustomParam> placeholders;
+    public static final boolean AUTOCOMMIT_OFF = false;
+    private boolean autocommit = AUTOCOMMIT_OFF;
 
     /**
      * fail with first exception or collect them and report at one
@@ -77,7 +79,7 @@ public class DbConfig {
     /**
      * Commit used connections
      *
-     * @throws ApplyAlterException if one or some of connection can not be commited
+     * @throws ApplyAlterException if one or more connections can not be committed
      * @see DbInstance#getConnection(RunContext)
      * @see DbInstance#isUsed()
      */
@@ -109,7 +111,7 @@ public class DbConfig {
                         connection.rollback();
 
                 } catch (SQLException e) {
-                    aae.addOrThrow(new ApplyAlterException("Error commiting", e));
+                    aae.addOrThrow(new ApplyAlterException("Error committing", e));
                 }
         }
         if (!aae.isEmpty())
@@ -125,5 +127,24 @@ public class DbConfig {
         return knownDbTypes;
     }
 
+    /**
+     * Change autocommit to new value.
+     *
+     * @param autocommit True if sql command execution should be carried out right away.
+     */
+    public void setDbAutocommit(boolean autocommit) {
+        if (autocommit != this.autocommit) {
+            this.autocommit = autocommit;
+            for (DbInstance db : getEntries()) {
+                db.setAutoCommit(autocommit);
+            }
+        }
+    }
 
+    /**
+     * Reset autocommit to default state {@link #AUTOCOMMIT_OFF}
+     */
+    public void resetDbAutocommit() {
+        setDbAutocommit(AUTOCOMMIT_OFF);
+    }
 }

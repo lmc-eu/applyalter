@@ -136,7 +136,8 @@ public abstract class DbInstance {
     }
 
     /**
-     * Get a current connection to this database instance with auto commit turned off
+     * Get a current connection to this database instance with auto commit off.
+     * Default auto commit can be changed by {@link DbConfig#setDbAutocommit(boolean)}
      *
      * @param ctx
      * @return connection to this database instance
@@ -147,12 +148,33 @@ public abstract class DbInstance {
             String url = getUrl();
             try {
                 con = connect(url, ctx);
-                con.setAutoCommit(false);
+                con.setAutoCommit(DbConfig.AUTOCOMMIT_OFF);
             } catch (SQLException e) {
                 throw new ApplyAlterException("Can not acquire db connection for " + url, e);
             }
         }
         return con;
+    }
+
+    public void setAutoCommit(boolean autocommit) {
+        if (con != null) {
+            try {
+                con.setAutoCommit(autocommit);
+            } catch (SQLException e) {
+                throw new ApplyAlterException("Failed to set autocommit to " + autocommit + " for database url:" + getUrl(), e);
+            }
+        }
+    }
+
+    public boolean getAutoCommit() {
+        if (con != null) {
+            try {
+                return con.getAutoCommit();
+            } catch (SQLException e) {
+                throw new RuntimeException("Failed to get autocommit for database url:" + getUrl(), e);
+            }
+        }
+        throw new RuntimeException("No connection established for url: " + getUrl());
     }
 
     /**
@@ -191,7 +213,7 @@ public abstract class DbInstance {
     }
 
     /**
-     * Get a current connection to this database instance nad mark it as used
+     * Get a current connection to this database instance and mark it as used
      *
      * @return connection to this database instance
      * @throws ApplyAlterException if connection could not be acquired

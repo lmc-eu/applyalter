@@ -45,7 +45,7 @@ public interface RunContext extends Closeable {
     void report(ReportLevel level, Exception e, String format, Object... args);
 
     /**
-     * Report structured property: add name=value pair. It should also write to standard log, to avoid duplicit info.
+     * Report structured property: add name=value pair. It should also write to standard log, to avoid duplicate info.
      *
      * @param level report level; used mainly if implementation also calls {@link #report(ReportLevel, String, Object...)}
      * @param key   key

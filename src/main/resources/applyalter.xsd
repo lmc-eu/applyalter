@@ -13,6 +13,7 @@
         <xs:element ref="environment" minOccurs="0" maxOccurs="unbounded" />
         <xs:element ref="isolation" minOccurs="0" maxOccurs="unbounded" />
         <xs:element ref="checkok" minOccurs="0" maxOccurs="1" />
+        <xs:element ref="autocommit" minOccurs="0" maxOccurs="1" />
         <xs:element ref="synchronization" minOccurs="0" maxOccurs="1" />
         <xs:element ref="check" minOccurs="0" maxOccurs="unbounded" />
         <xs:element ref="datafile" minOccurs="0" maxOccurs="unbounded" />
@@ -52,7 +53,13 @@
     <xs:annotation>
       <xs:documentation>Úroveň izolace, jaká se má v průběhu alter skriptu použít: tag isolation může nabývat hodnot UR, CS, RS, RR</xs:documentation>
     </xs:annotation>
-  </xs:element> 
+  </xs:element>
+
+  <xs:element name="autocommit" type="xs:boolean" >
+    <xs:annotation>
+      <xs:documentation>True if every statement should be committed right away after execution. There is no rollback possible.</xs:documentation>
+    </xs:annotation>
+  </xs:element>
 
   <xs:element name="checkok" type="xs:string" >
     <xs:annotation>

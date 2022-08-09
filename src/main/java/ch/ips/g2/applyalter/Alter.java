@@ -3,7 +3,11 @@ package ch.ips.g2.applyalter;
 import com.thoughtworks.xstream.annotations.XStreamAlias;
 import com.thoughtworks.xstream.annotations.XStreamImplicit;
 
-import java.util.*;
+import java.util.ArrayList;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
 
 
 /**
@@ -46,6 +50,12 @@ public class Alter {
      * Synchronization flag: used to mark everchanging (generated) scripts. Used in incremental mode.
      */
     public boolean synchronization = false;
+
+    /**
+     * True if every statement should be committed right away after execution in {@link RunMode#SHARP}.
+     * There is no rollback possible.
+     */
+    public boolean autocommit = false;
 
     @XStreamImplicit(itemFieldName = "datafile")
     public List<String> datafile;
