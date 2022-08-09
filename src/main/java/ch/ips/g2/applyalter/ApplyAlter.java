@@ -485,6 +485,13 @@ public class ApplyAlter {
     }
 
     private void applySingleAlter(final Alter a, ApplyAlterExceptions aae) {
+        // There is no simple way to rollback auto committed command executions, so there is only SHARP mode allowed.
+        if (a.autocommit && !RunMode.SHARP.equals(getRunMode())) {
+            runContext.report(ALTER, "Alterscript with autocommit ON can be run only in %s mode.", RunMode.SHARP.name());
+            runContext.reportProperty(ALTER, "result", ReportedResult.SKIPPED);
+            return;
+        }
+
         db.setDbAutocommit(a.autocommit);
         //logged as property//  runContext.report(ALTER, "alterscript: %s", a.getId());
         runContext.reportProperty(ALTER, "id", a.getId());
