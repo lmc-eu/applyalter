@@ -1,6 +1,5 @@
 package ch.ips.g2.applyalter;
 
-import com.google.common.annotations.VisibleForTesting;
 import com.thoughtworks.xstream.annotations.XStreamAlias;
 import org.apache.commons.io.IOUtils;
 
@@ -124,7 +123,7 @@ public class PgInstance extends DbInstance {
      * matching line and if found, set password via {@link #setPass(String)}
      * @param runContext context (used by logging)
      */
-    @VisibleForTesting void loadPgpass(RunContext runContext, InputStream pgpassInputStream) {
+    void loadPgpass(RunContext runContext, InputStream pgpassInputStream) {
         if (pgpassInputStream == null)
             return;
         //load whole file at once
