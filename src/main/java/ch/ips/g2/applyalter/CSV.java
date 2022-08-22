@@ -3,7 +3,7 @@ package ch.ips.g2.applyalter;
 import com.opencsv.CSVReader;
 import com.opencsv.exceptions.CsvValidationException;
 import com.thoughtworks.xstream.annotations.XStreamAlias;
-import org.apache.commons.lang.StringUtils;
+import org.apache.commons.lang3.StringUtils;
 
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
@@ -58,8 +58,8 @@ public class CSV extends AbstractStatement {
      * Prepared statement parameters meta info.
      */
     private static class ParamMeta {
-        private int typeId;
-        private String name;
+        private final int typeId;
+        private final String name;
         ;;
 
         ParamMeta(int typeId, String name) {
