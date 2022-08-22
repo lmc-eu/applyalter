@@ -1,26 +1,34 @@
 package ch.ips.g2.applyalter;
 
-import com.google.common.collect.ImmutableMap;
 import org.apache.commons.io.IOUtils;
-import org.testng.Assert;
-import org.testng.annotations.DataProvider;
-import org.testng.annotations.Test;
+import org.junit.jupiter.api.Assertions;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.Arguments;
+import org.junit.jupiter.params.provider.MethodSource;
 
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.util.Map;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
+
+import static org.junit.jupiter.api.Assertions.assertEquals;
 
 public class ReplaceInputStreamTest {
 
-    @Test(dataProvider = "provider")
+    //    @Test(dataProvider = "provider")
+    @ParameterizedTest
+    @MethodSource("provider")
     public void testReplace(String input, Map<String, String> params, String expOutput) throws IOException {
-        Assert.assertEquals(readAsInputStream(input, params), expOutput);
+        assertEquals(expOutput, readAsInputStream(input, params));
     }
 
-    @Test(expectedExceptions = IllegalStateException.class)
-    public void testParamDoesNotExists() throws IOException {
-        readAsInputStream("Hello {{param}} world {{missingParam}}", ImmutableMap.of("param", "first"));
+    @Test
+    public void testParamDoesNotExists() {
+        Assertions.assertThrows(IllegalStateException.class, () ->
+                readAsInputStream("Hello {{param}} world {{missingParam}}", Map.of("param", "first"))
+        );
     }
 
     private String readAsInputStream(final String input, final Map<String, String> params) throws IOException {
@@ -34,57 +42,55 @@ public class ReplaceInputStreamTest {
         return IOUtils.toString(ris, charsetName);
     }
 
-    @DataProvider
-    private Object[][] provider() {
-        return new Object[][]{
-                new Object[]{
+    private static Stream<Arguments> provider() {
+        return Stream.of(
+                Arguments.of(
                         "First test",
-                        ImmutableMap.of(),
+                        Map.of(),
                         "First test"
-                },
-                new Object[]{
+                ),
+                Arguments.of(
                         "First test",
-                        ImmutableMap.of("db", "test"),
+                        Map.of("db", "test"),
                         "First test"
-                },
-                new Object[]{
+                ),
+                Arguments.of(
                         "First {{}} test",
-                        ImmutableMap.of("db", "test"),
+                        Map.of("db", "test"),
                         "First {{}} test"
-                },
+                ),
 
-                new Object[]{
+                Arguments.of(
                         "First {{db}} test",
-                        ImmutableMap.of("db", "brand0"),
+                        Map.of("db", "brand0"),
                         "First brand0 test"
-                },
-                new Object[]{
+                ),
+                Arguments.of(
                         "First {{db}} test\nnext{{db}} line",
-                        ImmutableMap.of("db", "brand0"),
+                        Map.of("db", "brand0"),
                         "First brand0 test\nnextbrand0 line"
-                },
-                new Object[]{
+                ),
+                Arguments.of(
                         "Hello {{a}} world {{b}} next {{a}} word",
-                        ImmutableMap.of("a", "first", "b", "second"),
+                        Map.of("a", "first", "b", "second"),
                         "Hello first world second next first word"
-                },
-                new Object[]{
+                ),
+                Arguments.of(
                         "Second {{a b}} \nworld {{b\n}} next {{a}} word",
-                        ImmutableMap.of("a", "first"),
+                        Map.of("a", "first"),
                         "Second {{a b}} \nworld {{b\n}} next first word"
-                },
-                new Object[]{
+                ),
+                Arguments.of(
                         "Hello \n{{a-b_c}} world\nand {{def}} next \n xxx {{a-b_c}} word",
-                        ImmutableMap.of("a-b_c", "first", "def", "second"),
+                        Map.of("a-b_c", "first", "def", "second"),
                         "Hello \nfirst world\nand second next \n xxx first word"
-                },
-                new Object[]{
+                ),
+                Arguments.of(
                         "Hello {{a}} world {{b}}",
-                        ImmutableMap.of("a", "{{b}}", "b", "{{a}}"),
+                        Map.of("a", "{{b}}", "b", "{{a}}"),
                         "Hello {{b}} world {{a}}"
-                }
-
-        };
+                )
+        );
     }
 
 }

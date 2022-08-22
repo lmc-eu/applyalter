@@ -1,10 +1,11 @@
 package ch.ips.g2.applyalter;
 
 import com.thoughtworks.xstream.XStream;
-import org.testng.Assert;
-import org.testng.annotations.Test;
+import org.junit.jupiter.api.Test;
 
 import java.util.ArrayList;
+
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 public class DbConfigFileTest {
 
@@ -29,6 +30,6 @@ public class DbConfigFileTest {
 
         System.out.println(xml);
 
-        Assert.assertTrue(xml.contains("<param name=\"roleRW\" value=\"pgs_brand0_rw\"/>"), "Final xml must contain element param with attribute name= roleRW");
+        assertTrue(xml.contains("<param name=\"roleRW\" value=\"pgs_brand0_rw\"/>"), "Final xml must contain element param with attribute name= roleRW");
     }
 }
