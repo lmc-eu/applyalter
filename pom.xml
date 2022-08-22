@@ -41,9 +41,9 @@
             <version>1.0</version>
         </dependency>
         <dependency>
-            <groupId>net.sf.opencsv</groupId>
+            <groupId>com.opencsv</groupId>
             <artifactId>opencsv</artifactId>
-            <version>1.8</version>
+            <version>5.6</version>
         </dependency>
         <dependency>
             <groupId>com.thoughtworks.xstream</groupId>

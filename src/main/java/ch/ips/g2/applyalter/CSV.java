@@ -1,13 +1,13 @@
 package ch.ips.g2.applyalter;
 
-import au.com.bytecode.opencsv.CSVReader;
+import com.opencsv.CSVReader;
+import com.opencsv.exceptions.CsvValidationException;
 import com.thoughtworks.xstream.annotations.XStreamAlias;
 import org.apache.commons.lang.StringUtils;
 
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.io.InputStreamReader;
-import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
 import java.sql.Connection;
 import java.sql.ParameterMetaData;
@@ -93,7 +93,7 @@ public class CSV extends AbstractStatement {
             throw new ApplyAlterException(String.format("missing top-level element: <datafile>%s</datafile>", getFile()));
         }
 
-        CSVReader rdr = new CSVReader(new InputStreamReader(new ByteArrayInputStream(rawFile), Charset.forName("UTF-8")));
+        CSVReader rdr = new CSVReader(new InputStreamReader(new ByteArrayInputStream(rawFile), StandardCharsets.UTF_8));
 
         PreparedStatement st = null;
         try {
@@ -144,7 +144,7 @@ public class CSV extends AbstractStatement {
 
             ctx.report(ReportLevel.STATEMENT_STEP, "statement executed %d times, changed rows: %d%n", execCnt, rows);
             rdr.close();
-        } catch (IOException e) {
+        } catch (IOException | CsvValidationException e) {
             throw new ApplyAlterException("error reading CSV file " + getFile(), e);
         } finally {
             DbUtils.close(st);
