@@ -2,8 +2,6 @@ package ch.ips.g2.applyalter;
 
 import ch.ips.g2.applyalter.logreport.ReportedResult;
 import ch.ips.g2.applyalter.logreport.StructuredLog;
-import com.google.common.collect.ArrayListMultimap;
-import com.google.common.collect.Multimap;
 import com.thoughtworks.xstream.XStream;
 import com.thoughtworks.xstream.XStreamException;
 import org.apache.commons.cli.BasicParser;
@@ -38,6 +36,7 @@ import java.util.EnumSet;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -155,7 +154,7 @@ public class ApplyAlter {
 
     protected XStream xstream = new XStream();
     protected String username;
-    protected Multimap<String, String> unapplied = ArrayListMultimap.create();
+    protected Map<String, List<String>> unapplied = new LinkedHashMap<>();
     private boolean logTableUsed;
     private String environment;
     private boolean unknownInstancesIgnored = false;
@@ -535,7 +534,9 @@ public class ApplyAlter {
 
                     if (RunMode.LOOK.equals(getRunMode())) {
                         runContext.report(MAIN, "Alter %s seems unapplied", a.getId());
-                        unapplied.put(d.getId(), a.getId());
+                        final List<String> data = unapplied.getOrDefault(d.getId(), new ArrayList<>());
+                        data.add(a.getId());
+                        unapplied.putIfAbsent(d.getId(), data);
                         continue;
                     }
                     d.markConnectionUsed(runContext);
@@ -784,7 +785,7 @@ public class ApplyAlter {
      * @return concatenated list ready to print
      */
     public String getUnappliedAlters() {
-        Multimap<String, String> un = ArrayListMultimap.create(unapplied);
+        final Map<String, List<String>> un = new LinkedHashMap<>(unapplied);
         StringBuilder s = new StringBuilder();
         for (DbInstance d : db.getEntries()) {
             Collection<String> c = un.get(d.getId());

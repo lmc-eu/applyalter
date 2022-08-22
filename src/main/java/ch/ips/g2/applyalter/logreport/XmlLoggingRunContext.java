@@ -2,8 +2,8 @@ package ch.ips.g2.applyalter.logreport;
 
 import ch.ips.g2.applyalter.ReportLevel;
 import ch.ips.g2.applyalter.RunContext;
-import org.apache.commons.lang.exception.ExceptionUtils;
-import org.apache.commons.lang.time.DateFormatUtils;
+import org.apache.commons.lang3.exception.ExceptionUtils;
+import org.apache.commons.lang3.time.DateFormatUtils;
 import org.w3c.dom.Document;
 import org.w3c.dom.Element;
 
@@ -19,10 +19,7 @@ import javax.xml.transform.dom.DOMSource;
 import javax.xml.transform.stream.StreamResult;
 import java.io.IOException;
 import java.io.OutputStream;
-import java.text.DateFormat;
-import java.text.SimpleDateFormat;
 import java.util.Date;
-import java.util.TimeZone;
 
 /**
  * Collect logs into json.
@@ -42,7 +39,7 @@ public class XmlLoggingRunContext extends RunContext.WrapperRunContext {
      * Format date and time.
      */
     protected String formatTime(Date time) {
-        return DateFormatUtils.ISO_DATETIME_TIME_ZONE_FORMAT.format(time);
+        return DateFormatUtils.ISO_8601_EXTENDED_DATETIME_TIME_ZONE_FORMAT.format(time);
     }
 
 
@@ -138,7 +135,7 @@ public class XmlLoggingRunContext extends RunContext.WrapperRunContext {
         final Element msg = createMessageElement(format, args);
         if (e != null) {
             Element stacktrace = document.createElement("stacktrace");
-            stacktrace.setTextContent(ExceptionUtils.getFullStackTrace(e));
+            stacktrace.setTextContent(ExceptionUtils.getStackTrace(e));
             msg.appendChild(stacktrace);
         }
     }

@@ -5,7 +5,7 @@ import com.thoughtworks.xstream.annotations.XStreamAlias;
 import com.thoughtworks.xstream.annotations.XStreamImplicit;
 import com.thoughtworks.xstream.io.xml.PrettyPrintWriter;
 import org.apache.commons.io.IOUtils;
-import org.apache.commons.lang.time.DateFormatUtils;
+import org.apache.commons.lang3.time.DateFormatUtils;
 
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
@@ -14,6 +14,7 @@ import java.io.IOException;
 import java.io.OutputStream;
 import java.io.OutputStreamWriter;
 import java.io.Writer;
+import java.nio.charset.StandardCharsets;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
@@ -136,7 +137,7 @@ class PkgLogTableHandler {
         Writer wr = null;
         try {
             final OutputStream os = stdout ? System.out : new FileOutputStream(outputFile);
-            wr = new OutputStreamWriter(os, "UTF-8");
+            wr = new OutputStreamWriter(os, StandardCharsets.UTF_8);
             XStream xstream = new XStream();
             xstream.processAnnotations(QueryResult.class);
             xstream.marshal(new QueryResult(result), new PrettyPrintWriter(wr));
@@ -179,7 +180,7 @@ class PkgLogTableHandler {
         public Record(String hash, String username, Timestamp at) {
             this.hash = hash;
             this.username = username;
-            this.at = DateFormatUtils.ISO_DATETIME_TIME_ZONE_FORMAT.format(at);
+            this.at = DateFormatUtils.ISO_8601_EXTENDED_DATETIME_TIME_ZONE_FORMAT.format(at);
         }
     }
 
